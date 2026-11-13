@@ -101,9 +101,3 @@ public interface IAirDropReceiver
     bool IsAvailable { get; }
     string UnavailableReason { get; }
 }
-
-public sealed class NativeAirDropReceiver : IAirDropReceiver
-{
-    public bool IsAvailable => false;
-    public string UnavailableReason => "原生接收引擎尚未实现；当前版本无法接收 iPhone 隔空投送。";
-}

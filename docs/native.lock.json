@@ -1,0 +1,16 @@
+{
+  "sources": [
+    { "path": "upstream/devourer", "url": "https://github.com/OpenIPC/devourer.git", "commit": "9d18cc104c64f6d43bdd0fc251d48967e1976c7e" },
+    { "path": "upstream/winawdl", "url": "https://github.com/raph559/winawdl.git", "commit": "0db7031589dc2bca03c0893db341176376962047" },
+    { "path": "upstream/lwip", "url": "https://github.com/lwip-tcpip/lwip.git", "commit": "77dcd25a72509eb83f72b033d219b1d40cd8eb95" },
+    { "path": ".build/deps/vcpkg", "url": "https://github.com/microsoft/vcpkg.git", "commit": "af2c387aa62cf2d0909cd50f4049f2bee1ab682b" }
+  ],
+  "submodules": {
+    "upstream/winawdl/upstream/owl": "da255a70f221784c836d943dd3f243bc798f223b",
+    "upstream/winawdl/upstream/owl/radiotap": "94984dd829a605a2d7af55241145c159607f3b30"
+  },
+  "downloads": [
+    { "path": ".build/deps/llvm-mingw-20261104-ucrt-x86_64.zip", "directory": ".build/deps/llvm-mingw-20261104-ucrt-x86_64", "url": "https://github.com/mstorsjo/llvm-mingw/releases/download/20261104/llvm-mingw-20261104-ucrt-x86_64.zip", "sha256": "552191b5754c49a5a20723276a6fc56541ea1922c4c50b7b669022333fc1b40f" },
+    { "path": ".build/python-3.12.10-embed-amd64.zip", "directory": ".build/python", "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip", "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3" }
+  ]
+}

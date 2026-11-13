@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.24)
+project(AirDropAwdl C)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(UPSTREAM "${CMAKE_CURRENT_SOURCE_DIR}/../../upstream/winawdl")
+add_subdirectory("${UPSTREAM}/awdl" protocol)
+set_property(TARGET host_if PROPERTY SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/host_pipe.c;${UPSTREAM}/awdl/win/host_frame.c")
+target_include_directories(host_if PRIVATE "${UPSTREAM}/awdl/win")
+set_target_properties(awdld PROPERTIES OUTPUT_NAME "AirDrop.Awdl")
+target_link_libraries(awdld PRIVATE winpthread)
+# The upstream fixture hardcodes 21 bytes for a 20-byte DNS suffix and reads
+# beyond its string literal under LLVM. Correct the fixture, not production DNS.
+file(READ "${UPSTREAM}/awdl/tests/service_bridge_test.c" SERVICE_TEST)
+string(REPLACE "#define FULL_TYPE_LEN 21" "#define FULL_TYPE_LEN (sizeof(FULL_TYPE) - 1)" SERVICE_TEST "${SERVICE_TEST}")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/service_bridge_test.c" "${SERVICE_TEST}")
+set_property(TARGET service_bridge_test PROPERTY SOURCES "${CMAKE_CURRENT_BINARY_DIR}/service_bridge_test.c;${UPSTREAM}/awdl/win/service_bridge.c;${UPSTREAM}/awdl/win/frame_fixup.c")
+# Both GNU C compilers are supported; LLVM diagnoses a few upstream extensions
+# differently from GCC. Keep warnings, do not turn upstream warnings into errors.
+file(GLOB WIN_FILES "${UPSTREAM}/awdl/win/*.c" "${UPSTREAM}/awdl/compat/*.c")
+foreach(SOURCE IN LISTS WIN_FILES)
+  get_source_file_property(OPTIONS "${SOURCE}" COMPILE_OPTIONS)
+  if(OPTIONS)
+    list(REMOVE_ITEM OPTIONS -Werror)
+    set_source_files_properties("${SOURCE}" PROPERTIES COMPILE_OPTIONS "${OPTIONS}")
+  endif()
+endforeach()

@@ -1,47 +1,34 @@
-# LiquidGlassWinAirDrop
+# AirDrop
 
-独立开发的 Windows 原生桌面应用，名称为 **LiquidGlassWinAirDrop**。当前界面按用户草图改为约 **352×480 DIP** 的竖向小浮窗，默认贴近工作区右下角；内容区保持干净，底部为「接收／文件／连接／设置」四栏。
+独立开发的 Windows x64 接收应用，原工程名 LiquidGlassWinAirDrop。默认约352×480 DIP，停靠屏幕右下工作区；底部「接收／文件／连接／设置」采用自行实现的应用内 Liquid Glass 近似材质。底部按钮点击后不再显示蓝色矩形焦点框，键盘导航仍可用。
 
-液态玻璃效果集中于底部导航：采样本窗口内的内容，柔化背景后进行边缘折射、细微色散、亮边和选中透镜的弹簧位移。支持点击、拖动透镜、键盘左右切换。使用独立编写的小面积 CPU 采样器，不录制桌面、不安装系统主题，不是苹果官方渲染器。
-
-## 当前版本的能力边界
-
-**当前是可运行的独立开发预览版，尚不能接收 iPhone 原生隔空投送。** 接收中心、文件目录与记录、硬件检查、设置持久化及安全存储已经实现；原生 USB 无线后端、AWDL、IPv6/mDNS 与 AirDrop 协议仍需开发整合。
-
-不会把界面渲染、USB 枚举、目录文件或本地存储测试描述成 AirDrop 已成功。
+原生接收链路已编写、编译并打包，**尚未完成真实 iPhone 隔空投送验收**。本机USB网卡已由用户绑定WinUSB，并通过初始化与5秒原始收包测试；手机发现和文件传输仍待验证。未绑定WinUSB的机器会显示原因，不会伪装运行中。本地 IPv6/TCP、TLS、归档接收和哈希测试均不是无线传输证据。
 
 ## 运行
 
-双击 `dist/LiquidGlassWinAirDrop/LiquidGlassWinAirDrop.exe`。当前机器已安装所需 .NET 10 Desktop Runtime；本版为依赖运行时的文件夹发行版，需要保留同目录的 DLL 与 JSON 文件。
+双击 `dist/AirDrop/AirDrop.exe`，保留同目录文件；需要 .NET 10 Desktop Runtime。界面支持设备名、接收目录、文件搜索、动画/透明度、置顶和收起托盘。文件页列出真实目录内容，不将手动放入的文件冒称 AirDrop 传输。
 
-- 接收：显示当前接收能力与设备名称，可运行只读连接检查。
-- 文件记录：列出所选接收目录中的文件，支持名称搜索；双击只在资源管理器中定位，不自动执行文件。
-- 设备与连接：通过 Windows SetupAPI 只读检查 USB Wi-Fi、独立蓝牙、原驱动和网络状态，不修改驱动或网络。
-- 设置：修改设备名、接收目录、导航动画、减少透明度与置顶；点击保存后写入程序旁 `data/preferences.json`。顶部图钉也可切换并保存置顶状态。
-- 顶部空白区域可拖动。关闭或最小化按钮收起到托盘；双击托盘图标还原，托盘菜单可重新停靠右下角或退出。停靠使用当前显示器的工作区，避开任务栏。
+WinUSB 准备完成后，手动点击「开启接收」才启动专用 USB、AWDL、用户态 IPv6/TCP、TLS 和 BLE 发现组件。每次请求需明确确认，45秒无答复默认拒绝；文件默认存入设置的目录。关闭窗口收起托盘，托盘「退出」停止后台；Windows Job 负责应用意外退出时清理其子进程。
 
-文件记录只代表接收目录的实际内容，**不把用户自行放入的文件标记为 AirDrop 传输**。`Received` 目录中的文件目前仍需要由用户或后续接收引擎写入。
+仅实现接收方向，不承诺向 iPhone 发送、Apple 身份认证或所有 iOS 版本兼容。当前不能将其当作已可用的正式产品。
 
-## 编译与验证
+## 构建
 
-要求 Windows x64、.NET 10 SDK 和 Desktop targeting pack。当前应用不使用第三方 NuGet 包，`NuGet.Config` 清空外部包源，可离线构建。
+本目录是独立 Git 工程，不引用父目录 DropBridge 的源代码、补丁、资源、安装包或二进制。允许的独立开源底层库版本见 `docs/native.lock.json`。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Preview
+.\build.ps1 -Preview
+.\tools\Restore-Sources.ps1 -WithBuildDependencies
+.\tools\Build-Native.ps1
+.\dist\AirDrop\AirDrop.exe --engine-check .\artifacts\engine-check.json
 ```
 
-结果：`dist/LiquidGlassWinAirDrop`；验证报告：`artifacts/self-test.json`；五张原生 WPF 视图渲染位于 `artifacts/`。`material-proof.png` 为合成条纹的折射诊断样本，`material-check.json` 记录背景像素变化与局部透镜采样耗时，它们不是生产界面或 AirDrop 传输证据。
+GUI要求.NET 10 SDK；原生层要求 Visual Studio C++/CMake/Ninja、Git。恢复脚本将依赖下载到本目录并核对固定提交、工具链归档SHA-256，不安装系统驱动。协议工作进程使用固定 LLVM-MinGW、libusb、Python 3.12.10；没有 WSL、虚拟机、Wintun 或 iPhone 端应用依赖。原生构建脚本已经在本机执行；从空白机器完整下载重建尚未验收。
 
-```powershell
-.\dist\LiquidGlassWinAirDrop\LiquidGlassWinAirDrop.exe --diagnose .\artifacts\hardware.local.json
-```
+只读诊断：`AirDrop.exe --diagnose <输出JSON>`；`backend/AirDrop.Radio.exe --probe`只尝试打开USB和读取描述符，不初始化射频。不要把 `--run`、`--listen` 或 beacon.ps1 当作只读命令。
 
-该命令只读取设备状态，报告可能包含硬件标识，仅保存在本地、不纳入提交。
+## 数据与交接
 
-## 独立性与后续无线实现
+`data/preferences.json`保存设置，`data/keys/`保存自签TLS私钥与稳定服务ID，`data/logs/engine.log`保存带时间的后台日志；私钥和本机标识不纳入Git。接收引擎仅在127.0.0.1:18771提供TLS，AWDL流量经用户态网络桥转入，不创建系统网络适配器或更改防火墙。
 
-本工程没有引用、复制、启动或打包 DropBridge 的源代码、补丁、图标、安装器或发布二进制。此前下载的项目保留在本工程外，不是运行或构建依赖。即使将本目录单独复制出去，也可以构建运行。
-
-用户允许采用独立的开源底层库。候选为 OpenIPC/devourer（USB 原始无线层）、seemoo-lab/OWL（AWDL 协议）、OpenDrop（AirDrop 协议资料/可能的独立工作进程）。这些尚未引入当前构建。引入前固定版本、核查各自许可，并保持应用与不同 GPL 工作进程的边界；不复用 DropBridge 的整合代码。
-
-详见 [架构与下一阶段](docs/ARCHITECTURE.md)、[验证记录](docs/VALIDATION.md)、[第三方与参考资料](docs/THIRD_PARTY.md)。
+驱动操作见 [本机绑定与恢复](docs/DRIVER_RUNBOOK.md)。准确进度见 [工作队列](docs/WORK_QUEUE.md)、[验证记录](docs/VALIDATION.md)、[第三方许可](docs/THIRD_PARTY.md)。本包仅用于本机研究；固件与运行库再分发、代码签名、真实设备与长期稳定性仍需单独处理。

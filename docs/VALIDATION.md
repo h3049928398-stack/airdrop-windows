@@ -1,5 +1,18 @@
 # 本机验证记录
 
+## 2026-11-13：AirDrop接收引擎与改名
+
+- UI/基础：Release构建成功，17项基础/材质和8项WPF生命周期通过；新截图显示AirDrop名称和无矩形焦点框的底部按钮。
+- 独立上游版本见native.lock.json。devourer C8821C、WinAWDL/OWL和原创lwIP桥均已在Windows x64编译。Build-Native脚本本机执行通过；干净机器完整依赖恢复尚未做。
+- 本地运行5个独立上游原生测试程序通过：frame_fixup、host_frame、redact、service_bridge、tcp_merge。LLVM下service_bridge原测试将20字节DNS后缀长度写成21，越过字符串末尾；CMake只在构建目录把测试长度改为sizeof(FULL_TYPE)-1，生产协议源码未因此修改。原始失败日志保留。
+- 独立WinAWDL Python测试本机84项全部通过（24.606秒），不是作者报告。沙箱内本地socket被拒绝的失败日志也保留；扩展执行权限后测试通过。
+- 集成6项通过：合成IPv6/TCP握手；管道/lwIP/loopback双向字节；TLS Discover二进制plist；用户拒绝返回401且不新增文件；用户允许后32768字节合成gzip/CPIO归档经TLS落盘、发文件事件、SHA256一致；关闭Windows Job终止自有工作进程。
+- 修复实测暴露的问题：MSVC结构体打包、64位IPv6分片头配置，以及同步管道ReadFile阻塞WriteFile。改用可取消OVERLAPPED读写；失败日志保留在artifacts及dist/AirDrop/*check*.log。
+- BLE只做过ValidateOnly构造/能力检查；当时没有广播。不能据此声称手机已发现。
+- 硬件初始probe exit2，普通驱动RtlWlanu；用户手动完成WinUSB绑定后，17:50+08硬件检查c811 WinUSB、ProblemCode0，probe exit0。内置8852BE仍Up，独立蓝牙BTHUSB、ProblemCode0。
+
+证据本地：artifacts/self-test.json、ui-check.json、engine-check.json、protocol-tests-native.log、protocol-tests-native-stderr.log、native-build-script.log、hardware.after-binding.local.json、usb-after-binding.log。报告不提交硬件标识、私钥或原始无线帧。源码/上游报告/本机编译/本机硬件/真实手机文件分开记录。
+
 ## 2026-11-13：0.2 小浮窗与底部液态导航
 
 - 发布构建成功。17项基础/材质检查全部通过：原13项加圆角透明边界、背景位移确实改变像素、中心保持原始采样、背景柔化四项。
@@ -26,3 +39,12 @@
 以下均未完成，不能由上述结果替代：USB WinUSB 绑定与回滚、固件初始化、原始无线收发、BLE 实际广播、AWDL/IPv6/mDNS/TLS 端到端互通、iPhone 发现/文件传输、持续负载和其它机器验收。
 
 界面内明确显示原生 AirDrop 接收未就绪。目录与存储测试不是 iPhone 传输测试。
+
+
+### 本机原始RX（17:50:43–17:51:31 +08）
+
+用户手动绑定后，独立Radio执行--listen 5 artifacts/raw-rx.local.pcap，channel149/20MHz；初始化成功，5秒收到308帧，radio_stopped正常，进程exit0。48秒墙钟含初始化和退出，不是308帧的传输时长，也不是文件吞吐。原始PCAP和日志留本地。该测试未主动发射AWDL、未发送文件，不能替代原始TX或iPhone发现验收。
+
+### 完整链路首次启动（17:54+08）
+
+Radio、AWDL host、Network和TLS全部就绪；AWDL日志在2秒内出现peers1、rx action22、tx action47、tx data5。这是本机协议层的收发计数，不确认对端身份或真实文件成功。BLE Publisher一直Waiting并退出，最初监管将辅助进程退出当成致命错误，随后正常停止无线链。保留原始失败日志，已改成BLE失败显示告警且保留主接收链；延长广播启动等待至15秒。加入仅向协议层转交action/data的过滤，避免无关AP信标淹没日志；USB单播硬件重试设为7。重新构建、自检通过后重启接收，等待手机验收。

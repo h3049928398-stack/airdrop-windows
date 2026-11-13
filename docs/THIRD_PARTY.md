@@ -1,6 +1,6 @@
 # 第三方与参考资料
 
-当前编译输出没有打包第三方应用或第三方协议代码；依赖 Microsoft .NET/WPF/WinForms 和 Windows 系统 API。没有采用 DropBridge 的代码或二进制，也没有使用其图标、资源或补丁。
+当前WPF界面为本工程原创，原生接收工作进程已采用下列独立开源组件。没有采用DropBridge的代码、补丁、安装器、图标或二进制。
 
 ## 2026-11-13 Windows Liquid Glass 调研
 
@@ -17,12 +17,22 @@
 - Apple Materials / Liquid Glass 原理：[Materials](https://developer.apple.com/design/human-interface-guidelines/materials)。参考材质与层次的概念；界面、图标和动效由本工程实现。
 - Windows 设备枚举 API：[SetupDiGetClassDevsW](https://learn.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdigetclassdevsw)、[SetupDiGetDeviceRegistryPropertyW](https://learn.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertyw)。
 
-候选独立底层项目（尚未引入、未构建、未集成）：
 
-| 项目 | 角色 | 引入前要求 |
+## 已采用的独立底层组件
+
+完整提交见native.lock.json，未修改upstream研究副本。新增适配代码在native和backend；GPL工作进程保持各自许可，应用IPC边界不意味着发布包整体MIT。
+
+| 组件 | 用途 | 许可/本地来源 |
 | --- | --- | --- |
-| [OpenIPC/devourer](https://github.com/OpenIPC/devourer) | 用户态原始 Wi-Fi/RTL8811CU 驱动路线 | 固定提交，核查代码与固件许可，Windows/C8821C 编译与本机验证 |
-| [seemoo-lab/OWL](https://github.com/seemoo-lab/owl) | AWDL 协议 | 固定提交、逐组件许可核查、自行实现 Windows 平台层 |
-| [seemoo-lab/OpenDrop](https://github.com/seemoo-lab/opendrop) | AirDrop 协议研究与接收实现 | 固定提交、许可核查、独立进程/自研实现边界、iPhone 兼容验证 |
+| OpenIPC/devourer | C8821C USB无线；链接AirDrop.Radio | GPL-2.0；upstream/devourer/LICENSE |
+| raph559/winawdl radio_link.h | 进程间v3无线协议定义 | MIT；root LICENSE |
+| WinAWDL awdl + OWL | AWDL协议及Windows平台层 | GPL-3.0-or-later；awdl/LICENSE、OWL/COPYING |
+| OWL radiotap | 无线头解析 | 上游独立许可；radiotap/COPYING |
+| WinAWDL airdrop模块 | TLS/HTTP收发、DVZip/CPIO/配额/安全落盘 | MIT，Brent Kearney；airdrop/LICENSE。仅打包receiver/transfer/cpio/identity/mdns/netif/redact |
+| lwIP 2.2.1 | 用户态IPv6/TCP/UDP | BSD；upstream/lwip/COPYING |
+| libusb 1.0.30 | USB设备访问DLL | LGPL-2.1-or-later及上游说明；vcpkg share/libusb/copyright |
+| Python 3.12.10 embedded | 本地协议工作进程 | PSF及所含OpenSSL等组件许可；Python/LICENSE.txt |
+| LLVM-MinGW 20261104 UCRT | AWDL构建/静态运行库 | 发行包LICENSE.TXT所列许可 |
+| Microsoft .NET/WPF/WinForms、VC运行库 | GUI与本机C++运行时 | Microsoft相应运行库许可；非本工程MIT声明范围 |
 
-没有把库的存在当成 Windows 原生 AirDrop 已经可用的证据。
+Package-Engine将上游许可原文、版本锁与本说明放到backend/licenses。完整对应源码在固定上游checkout与本工程native/backend/tools；没有向外发布仅含二进制的包。对外再分发前须补齐GPL/LGPL对应源码义务、Realtek固件再分发依据、微软运行库分发条款和签名，不将本机研究包称为可公开发行产品。没有采用OpenDrop或DropBridge的协议整合代码。

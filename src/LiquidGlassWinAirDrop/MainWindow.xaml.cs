@@ -24,23 +24,43 @@ public partial class MainWindow : Window
     private readonly MainViewModel _model = new();
     private readonly string? _preview;
     private readonly string? _uiReport;
+    private readonly bool _startReceiving;
     private Preferences _saved;
     private bool _scanning, _closed, _exitRequested;
     private int _folderRevision;
     private DispatcherOperation? _backdropRequest;
     private System.Windows.Forms.NotifyIcon? _tray;
+    private readonly NativeAirDropReceiver _receiver = new();
 
-    public MainWindow(PreferenceStore store, Preferences preferences, string? preview, string? uiReport = null)
+    public MainWindow(PreferenceStore store, Preferences preferences, string? preview, string? uiReport = null,bool startReceiving=false)
     {
         _store = store;
         _saved = preferences;
         _preview = preview;
         _uiReport = uiReport;
+        _startReceiving=startReceiving;
         InitializeComponent();
         BottomNavigation.SelectionChanged += Navigate;
         _model.Load(preferences);
         DataContext = _model;
         _catalog.Changed += OnFolderChanged;
+        _receiver.StateChanged += message =>
+        {
+            if(!_closed) Dispatcher.BeginInvoke(() => { if(!_closed) { _model.ReceiverStatus=message; ScanButton.Content=_receiver.IsRunning?"停止接收":"开启接收"; Feedback(message); } });
+        };
+        _receiver.RequestReceived += request =>
+        {
+            if(!_closed) Dispatcher.BeginInvoke(async () =>
+            {
+                if(_closed)return;
+                ShowFromTray();
+                var names=string.Join(Environment.NewLine,request.Files.Take(6));
+                var answer=System.Windows.MessageBox.Show(this,"来自："+request.Sender+Environment.NewLine+names+Environment.NewLine+Environment.NewLine+"是否接收这些文件？", "AirDrop 接收请求",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No);
+                try { await _receiver.RespondAsync(request.Id,answer==MessageBoxResult.Yes); }
+                catch(IOException) { Feedback("接收请求已结束，请从手机重新发送。"); }
+            });
+        };
+        _receiver.FilesReceived += OnFolderChanged;
         _model.PropertyChanged += (_, e) =>
         {
             if (IsLoaded && e.PropertyName is nameof(MainViewModel.MotionEnabled) or nameof(MainViewModel.HighContrast) or nameof(MainViewModel.AlwaysOnTop)) ApplyAppearance();
@@ -58,6 +78,7 @@ public partial class MainWindow : Window
             if (_closed) return;
             ApplyAppearance();
             CaptureBackdrop();
+            if(_startReceiving && !_closed)ToggleReceiver(this,new RoutedEventArgs());
             if (_uiReport is not null) { await RunUiCheckAsync(_uiReport); return; }
             if (_preview is not null)
             {
@@ -98,16 +119,16 @@ public partial class MainWindow : Window
     {
         _tray = new System.Windows.Forms.NotifyIcon
         {
-            Text = "LiquidGlassWinAirDrop · 开发预览",
+            Text = "AirDrop · 开发预览",
             Icon = IconFactory.CreateIcon(32),
             Visible = true
         };
         _tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
         var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("打开 LiquidGlassWinAirDrop", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
+        menu.Items.Add("打开 AirDrop", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
         menu.Items.Add("打开接收目录", null, (_, _) => Dispatcher.Invoke(() => OpenPath(_saved.ReceiveDirectory)));
         menu.Items.Add("停靠右下角", null, (_, _) => Dispatcher.Invoke(() => { ShowFromTray(); WindowPlacement.Dock(this); }));
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(() => { _exitRequested = true; Close(); }));
+        menu.Items.Add("退出", null, (_, _) => Dispatcher.BeginInvoke(async () => { await _receiver.StopAsync(); _exitRequested = true; Close(); }));
         _tray.ContextMenuStrip = menu;
     }
 
@@ -190,6 +211,22 @@ public partial class MainWindow : Window
     }
 
     private async void ScanHardware(object sender, RoutedEventArgs e) => await RefreshHardwareAsync();
+    private async void ToggleReceiver(object sender,RoutedEventArgs e)
+    {
+        ScanButton.IsEnabled=false;
+        try
+        {
+            if(_receiver.IsRunning) { await _receiver.StopAsync(); _model.ReceiverStatus="接收已停止"; }
+            else await _receiver.StartAsync(_saved);
+        }
+        catch(Exception error)
+        {
+            _model.ReceiverStatus=error.Message;
+            Feedback(error.Message);
+            BottomNavigation.Select(2);
+        }
+        finally { ScanButton.IsEnabled=true; ScanButton.Content=_receiver.IsRunning?"停止接收":"开启接收"; ScheduleBackdrop(); }
+    }
     private async Task RefreshHardwareAsync()
     {
         if (_scanning || _closed) return;
@@ -202,6 +239,9 @@ public partial class MainWindow : Window
             if (!_closed)
             {
                 _model.UpdateHardware(snapshot);
+                if(!_receiver.IsRunning && !_receiver.IsStarting)
+                    _model.ReceiverStatus=snapshot.UsbRadio?.Service.Equals("WinUSB",StringComparison.OrdinalIgnoreCase)==true?
+                        (_receiver.IsAvailable?"可以启动接收，等待真机验证":"接收组件尚未打包") : "专用 USB 无线驱动尚未就绪";
                 Feedback(snapshot.Error ?? "硬件已检查 · 原生接收开发中");
                 ScheduleBackdrop();
             }
@@ -210,7 +250,7 @@ public partial class MainWindow : Window
         finally
         {
             _scanning = false;
-            if (!_closed) { ScanButton.IsEnabled = true; ScanButton.Content = "检查连接"; }
+            if (!_closed) { ScanButton.IsEnabled = true; ScanButton.Content = _receiver.IsRunning?"停止接收":"开启接收"; }
         }
     }
 
@@ -263,7 +303,7 @@ public partial class MainWindow : Window
     }
     private void ChooseFolder(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "选择 LiquidGlassWinAirDrop 接收目录", InitialDirectory = _saved.ReceiveDirectory };
+        var dialog = new OpenFolderDialog { Title = "选择 AirDrop 接收目录", InitialDirectory = _saved.ReceiveDirectory };
         if (dialog.ShowDialog(this) == true) _model.ReceiveDirectory = dialog.FolderName;
     }
     private async void SaveSettings(object sender, RoutedEventArgs e)
@@ -349,6 +389,7 @@ public partial class MainWindow : Window
         _closed = true;
         _backdropRequest?.Abort();
         _catalog.Dispose();
+        _receiver.Dispose();
         _tray?.Dispose();
     }
 }

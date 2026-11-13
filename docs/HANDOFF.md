@@ -1,11 +1,11 @@
-# 当前进度与交接
+# 当前交接
 
-2026-11-13：用户将原任务改为独立开发 LiquidGlassWinAirDrop，要求液态玻璃外观，允许采用独立开源底层库。旧项目代码/二进制不作依赖。
+2026-11-13：用户将软件更名AirDrop，要求移除底部导航点击后的蓝色矩形焦点框，并推进原生隔空投送。两项UI改动已完成。工程目录仍LiquidGlassWinAirDrop，是独立Git工程；不依赖父目录DropBridge代码/补丁/二进制。
 
-已交付本目录内的原创 WPF 应用基础版，可独立编译运行。第一版大窗口/渐变卡片被用户否定。最新按用户草图改为352×480 DIP竖向右下浮窗，底部接收/文件/连接/设置四栏，仅导航使用应用内背景柔化与边缘折射、滑动透镜；正文保持干净。支持拖动位置、置顶切换、收起托盘与重新停靠。保留设置、目录监控、只读设备检测和安全存储。
+已构建接收链：原创WPF监管、devourer USB工作进程、独立WinAWDL/OWL、原创lwIP IPv6/TCP/mDNS桥、独立MIT接收协议与原创逐次确认包装、原创WinRT BLE广播。Windows Job负责子进程退出清理。固定上游版本/工具链SHA256见native.lock.json；恢复/构建/打包脚本在tools。应用入口dist/AirDrop/AirDrop.exe；需要.NET10DesktopRuntime。
 
-**整个原生 AirDrop 目标仍未完成。** 未实现 USB 无线工作进程、AWDL/IPv6、BLE 广播及端到端接收协议，不能用 GUI 完成或本地存储测试替代。源码里的 NativeAirDropReceiver 明确返回不可用。下一阶段按 ARCHITECTURE.md 的无线整合工作推进，不要重新使用上级 DropBridge 的 exe 或补丁来填补空缺。
+17项基础/材质、8项WPF、5项原生协议、84项独立上游Python、6项本地集成检查通过。后者包含合成IPv6握手与双向字节、TLS发现、拒收、允许后32768字节归档落盘/SHA256、Job清理。这不是iPhone实测。
 
-用户此前已授权仅针对现有 `0bda:c811` 的驱动切换、初始化、AWDL/BLE 和 iPhone 接收测试。再次检查其驱动仍为 `RtlWlanu`，内置 RTL8852BE 上网、独立蓝牙正常。当前没有切换驱动。旧 Zadig 启动曾被电脑控制工具拒绝；不要换执行途径规避该拒绝。
+用户已手动完成Zadig绑定。2026-11-13 17:50+08只读确认0BDA:C811为WinUSB/ProblemCode0，libusb probe exit0；内置8852BE仍Up，蓝牙BTHUSB正常。之后的初始化/原始RX/AWDL/手机验收以VALIDATION和WORK_QUEUE的最新补充为准。此前安装器启动被工具拒绝，未绕过。回滚手册和备份见DRIVER_RUNBOOK。
 
-构建：`powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Preview`。最终程序：`dist/LiquidGlassWinAirDrop/LiquidGlassWinAirDrop.exe`。需要 .NET 10 Desktop Runtime（本机已有），非自包含发布。测试、诊断和截图在 artifacts，诊断 JSON 不入库。父目录保留旧研究材料，本应用不引用它。
+构建：build.ps1 -Preview；原生：tools/Build-Native.ps1；软件检查：AirDrop.exe --engine-check <报告JSON>。普通启动不自动RF，显式--receive或界面开启才启动接收。实际传输仍需用户在手机上发起并在Windows确认。没有自动推送或对外发布。

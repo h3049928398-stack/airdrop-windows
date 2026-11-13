@@ -15,6 +15,8 @@ public partial class App : System.Windows.Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         try
         {
+            if(e.Args.Length==2 && e.Args[0]=="--engine-check")
+            { Shutdown(await EngineChecks.RunAsync(e.Args[1])); return; }
             if (e.Args.Length == 2 && e.Args[0] == "--make-icon")
             {
                 IconFactory.WriteIcon(e.Args[1]);
@@ -37,9 +39,11 @@ public partial class App : System.Windows.Application
                 return;
             }
             string? preview = null, uiReport = null;
+            bool receive=false;
             if (e.Args.Length > 0)
             {
-                if (e.Args.Length == 2 && e.Args[0] == "--preview") preview = Path.GetFullPath(e.Args[1]);
+                if(e.Args.Length==1 && e.Args[0]=="--receive")receive=true;
+                else if (e.Args.Length == 2 && e.Args[0] == "--preview") preview = Path.GetFullPath(e.Args[1]);
                 else if (e.Args.Length == 2 && e.Args[0] == "--ui-check") uiReport = Path.GetFullPath(e.Args[1]);
                 else throw new ArgumentException("Unrecognized arguments");
             }
@@ -51,7 +55,7 @@ public partial class App : System.Windows.Application
             var store = new PreferenceStore(uiReport is null ? Path.Combine(AppContext.BaseDirectory, "data") :
                 Path.Combine(Path.GetDirectoryName(uiReport)!, "ui-check-data"));
             var preferences = store.Load();
-            var window = new MainWindow(store, preferences, preview, uiReport);
+            var window = new MainWindow(store, preferences, preview, uiReport,receive);
             MainWindow = window;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             window.Show();
@@ -59,7 +63,7 @@ public partial class App : System.Windows.Application
         catch (Exception error)
         {
             try { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "startup-error.log"), error.ToString()); } catch { }
-            if (e.Args.Length == 0) System.Windows.MessageBox.Show(error.Message, "LiquidGlassWinAirDrop", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (e.Args.Length == 0) System.Windows.MessageBox.Show(error.Message, "AirDrop", MessageBoxButton.OK, MessageBoxImage.Warning);
             Shutdown(1);
         }
     }

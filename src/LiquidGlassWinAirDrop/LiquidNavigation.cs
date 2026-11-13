@@ -42,7 +42,7 @@ public sealed class LiquidNavigation : UserControl
             var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             stack.Children.Add(new Path { Data = Geometry.Parse(icons[i]), StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = 21, Height = 21, HorizontalAlignment = HorizontalAlignment.Center, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round });
             stack.Children.Add(new TextBlock { Text = names[i], FontSize = 10, Margin = new(0,4,0,0), HorizontalAlignment = HorizontalAlignment.Center });
-            var button = new Button { Content = stack, Background = Brushes.Transparent, BorderBrush = Brushes.Transparent, Padding = new(0) };
+            var button = new Button { Content = stack, Style = (Style)FindResource("GlassNavButton") };
             AutomationProperties.SetName(button, names[i]);
             button.Click += (_, _) => Select(index);
             button.PreviewMouseLeftButtonDown += (_, e) => { _down = true; _downX = e.GetPosition(this).X; _press = 1; RenderLens(); };

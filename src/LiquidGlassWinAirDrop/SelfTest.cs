@@ -68,7 +68,8 @@ public static class SelfTest
             var model = new MainViewModel();
             model.SetFiles(FolderCatalog.Read(received), "玻璃");
             Check(model.Files.Count == 2, "history search filters actual files");
-            Check(!new NativeAirDropReceiver().IsAvailable, "unfinished AirDrop engine never reports ready");
+            using var missingEngine = new NativeAirDropReceiver(Path.Combine(directory,"missing-package"));
+            Check(!missingEngine.IsAvailable, "missing engine package never reports available");
             MaterialChecks.Run(passed,Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
         }
         catch (Exception failure) { error = failure.ToString(); }

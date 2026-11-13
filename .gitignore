@@ -4,7 +4,11 @@ dist/
 data/
 artifacts/*.json
 artifacts/*.log
+artifacts/*.jsonl
+artifacts/*.pcap
 artifacts/*.zip
 .vs/
 .build/
 artifacts/ui-check-data/
+upstream/
+artifacts/engine-check-data/

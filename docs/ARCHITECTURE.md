@@ -1,42 +1,26 @@
-# 独立工程架构与剩余工作
+# 独立接收架构
 
-## 用户决策
+2026-11-13：按用户最新要求，软件显示名和可执行文件改为 AirDrop；工程目录/命名空间仍保留旧名以避免无关搬迁。底部Liquid Glass、小尺寸和右下停靠保持。
 
-- 2026-11-13：软件名 LiquidGlassWinAirDrop，独立开发；DropBridge 仅作原理参考，不复用其代码、补丁、图标和二进制。
-- 允许独立的开源底层 USB 驱动/协议库，应用自行开发。
-- 使用现有 RTL8811CU USB Wi-Fi 与电脑独立蓝牙，不因名称或设备枚举结果宣称无线可用。
-- 之前针对 c811 的驱动切换、初始化、AWDL/BLE 和接收测试已取得用户授权。该授权不意味着可自动关闭系统安全功能或修改别的网卡。旧项目的 Zadig 启动曾被工具拒绝，本工程没有尝试绕过该拒绝。
-
-## 已实现
+本工程不复用DropBridge源文件、补丁或二进制。独立采用用户允许的开源基础组件，完整提交锁定在native.lock.json。原创应用与各协议/USB工作进程通过管道和本地流通信，保留各自许可；这不代表整个发行物可按MIT分发。
 
 ```text
-WPF MainWindow / MainViewModel
- ├─ HardwareInspector → Windows SetupAPI / NetworkInterface（只读）
- ├─ PreferenceStore → atomic JSON replace
- ├─ FolderCatalog → FileSystemWatcher + debounced refresh
- ├─ ReceiveStore → temporary file + byte limit + SHA-256 + atomic publish
- └─ NativeAirDropReceiver → explicit unavailable state（尚未实现）
+WPF AirDrop.exe + Windows Job + 每次请求确认
+  ├─ AirDrop.Radio.exe：devourer C8821C/libusb，限定0bda:c811
+  │   └─ WinAWDL v3 radio管道：HELLO/RX/TX/channel/address
+  ├─ AirDrop.Awdl.exe：独立WinAWDL/OWL，原创host_if命名管道
+  ├─ AirDrop.Network.exe：lwIP IPv6/TCP/UDP + 原创mDNS/透明TCP桥
+  │   └─ 原始IPv6包 ↔ AWDL host管道；TLS字节 ↔ 127.0.0.1:18771
+  ├─ Python接收进程：独立MIT协议模块 + 原创逐次确认包装
+  └─ PowerShell BLE进程：Windows WinRT Publisher辅助发现
 ```
 
-应用构建只依赖 Windows/.NET，本目录外无 ProjectReference、源文件链接、可执行文件启动路径或资源引用。所有 UI 图形由本工程代码/XAML 绘制。`NativeAirDropReceiver` 当前仅是明确的能力边界，不是工作的协议实现。
+默认channel149/20MHz、一条空间流。没有系统TUN适配器、网络桥配置或防火墙修改。原生管道使用OVERLAPPED以避免全双工读写互锁；队列有上限。网络栈所有lwIP操作在单一线程，管道线程只交换字节。IPv6端口8771代理TLS字节到本地18771，证书自签，不伪造Apple证书或身份记录。
 
-## 无线整合的实际工作
+TLS接收器仅监听loopback。每次Ask经JSON事件发送给WPF，45秒未同意默认拒绝；Upload没有对应批准会话会拒绝。接收归档的路径限制/配额/临时发布由独立MIT transfer/cpio模块处理；原有ReceiveStore仍用于应用基础存储自检，不把它冒称当前归档实现。
 
-1. **独立 USB 工作进程**：直接基于独立上游 devourer 与 libusb 构建 C8821C 支持，编写自己的设备选择、只读 open/descriptor、初始化、有限 RX 与退出恢复；禁止调用现有 DropBridge radio。记录 c811 的真实芯片/固件/端点，不能把 c820 的 MI_02 当作本机 c811。
-2. **AWDL 工作进程**：评估独立 OWL 的平台依赖，编写自己的 Windows 平台层与帧传输接口。当前上游不是可直接嵌入 WPF 的 Windows 库；没有“加一个引用就能用”的结论。不要复制 DropBridge 的 Windows 补丁。
-3. **用户态 IPv6/mDNS/TCP**：在专用无线设备上建立真正的网络路径；Windows 当前普通 Wi-Fi 连接不能直接替代 AWDL。选择独立的网络栈并核查许可。
-4. **BLE 辅助发现**：独立实现或采用兼容的独立库，通过 Windows 蓝牙接口发 beacon；先验证蓝牙外设角色，再验证实际广播。普通蓝牙“已检测到”不足以判定可发现。
-5. **接收协议**：按独立公开的协议研究实现 TLS、发现、用户确认与归档解析，连接 `ReceiveStore`。建立同一会话的接收许可与配额，不默认接受任意远端上传。
-6. **真机验收**：iPhone 分享菜单发现 → 允许接收 → 实际文件落盘 → 大小/哈希核对 → 多次/多文件/中断与恢复。没有这些证据就保持 UI 的“尚未就绪”。
+BLE辅助进程失败仅显示告警，不停止主接收链；Windows实际广播是否成功以日志为准。启动顺序：只读硬件/WinUSB检查 → 本地TLS → USB初始化 → AWDL和IPv6桥 → BLE。日志有时间、会话状态；单文件超过5MB轮转一次。停止先信号并清理子进程，USB最多留10秒结束；Windows Job兜底父进程退出。尚未验证硬件中断恢复和持续负载，不承诺自动恢复所有USB固件异常。
 
-无线整合尚未开始，以上不是已完成的功能清单。界面当前没有虚假的“开启接收”或模拟传输按钮。
+GUI通过SetupAPI检查设备，目录监控只列真实文件。底部GlassNavButton透明模板消除蓝色矩形焦点框，选中玻璃透镜、文字和键盘切换保留。材质只采样应用自己的ContentLayer，按需刷新，不采集桌面。
 
-## UI 设计
-
-用户否定了第一版的全屏卡片/渐变方向。当前以其草图为准：默认352×480 DIP、最小320×440，干净的竖向内容区，底部四栏导航。默认停靠当前显示器右下工作区，保留12 DIP外侧距离，并留在任务栏上方；可拖动、切换置顶、收起托盘。
-
-`LiquidNavigation` 独立绘制约304×68 DIP的导航材质，按需更新，不进行空闲帧循环。光学输入由 `MainWindow.CaptureBackdrop()` 从应用自己的 `ContentLayer` 采样，排除导航自身避免递归。页面/布局/滚动变化时才重新采样；背景先柔化，之后 `LiquidMaterial` 通过圆角形状的距离与法线计算边缘位移，双线性采样并加入局部色散和高光。选中透镜使用同一背景源独立裁取。文字与原生按钮作为上层保持清晰。
-
-选中位置使用有阻尼弹簧，静止后立即移除 Rendering 事件；关闭动效时取消运动并直接落位。支持拖动透镜及键盘左右/Home/End。滚动边缘做渐隐，减少内容与导航标签相互遮挡。置顶与减少透明度设置可持久化。
-
-本实现是局部折射材质的近似，并非 Apple 私有渲染器。不抓取桌面或其它窗口；在纯白背景上折射本就不明显，不能用夸大的彩色光晕替代实际背景光学。开源方案的查阅与许可边界见 THIRD_PARTY.md。
+剩余验收按WORK_QUEUE中L05c→L05d执行：当前原始RX已通过，TX与手机传输未验收，不以源码存在、测试通过或上游报告替代本机实物和iPhone结果。

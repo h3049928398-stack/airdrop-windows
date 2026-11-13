@@ -1,5 +1,5 @@
 <Window x:Class="LiquidGlassWinAirDrop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:LiquidGlassWinAirDrop"
-        Title="LiquidGlassWinAirDrop" Width="352" Height="480" MinWidth="320" MinHeight="440" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" Foreground="#222329" ShowInTaskbar="False" WindowStartupLocation="Manual" FontFamily="Segoe UI Variable Display, Microsoft YaHei UI" FontSize="12" Loaded="OnLoaded" Closing="OnClosing">
+        Title="AirDrop" Width="352" Height="480" MinWidth="320" MinHeight="440" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" Foreground="#222329" ShowInTaskbar="False" WindowStartupLocation="Manual" FontFamily="Segoe UI Variable Display, Microsoft YaHei UI" FontSize="12" Loaded="OnLoaded" Closing="OnClosing">
   <Window.Resources>
     <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Padding" Value="7"/><Setter Property="Foreground" Value="#7C7D85"/></Style>
     <Style x:Key="RowTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#383940"/></Style>
@@ -12,7 +12,7 @@
       <Grid x:Name="ContentLayer" Background="#FCFCFD" Margin="1" ClipToBounds="True" SizeChanged="ClipScene">
         <Grid.RowDefinitions><RowDefinition Height="49"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid Margin="16,0,10,0" Background="Transparent" MouseLeftButtonDown="DragTitle">
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Grid Width="23" Height="23" Margin="0,0,8,0"><Ellipse Width="21" Height="21" Stroke="#A8AFBF"/><Ellipse Width="13" Height="13" Stroke="#677BAA"/><Ellipse Width="5" Height="5" Fill="#5F75AC"/></Grid><TextBlock Text="LiquidGlass" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Grid Width="23" Height="23" Margin="0,0,8,0"><Ellipse Width="21" Height="21" Stroke="#A8AFBF"/><Ellipse Width="13" Height="13" Stroke="#677BAA"/><Ellipse Width="5" Height="5" Fill="#5F75AC"/></Grid><TextBlock Text="AirDrop" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
             <Button x:Name="PinButton" Style="{StaticResource QuietButton}" Click="TogglePin" ToolTip="切换置顶" AutomationProperties.Name="切换置顶"><Path Data="M 4,0 L 10,0 M 5,0 L 5,6 L 2,9 L 12,9 L 9,6 L 9,0 M 7,9 L 7,15" Stroke="#7A7D87" StrokeThickness="1.2" Width="14" Height="15"/></Button>
             <Button Style="{StaticResource QuietButton}" Content="−" FontSize="17" Width="26" Click="Minimize" ToolTip="收起到托盘" AutomationProperties.Name="收起到托盘"/>
@@ -24,8 +24,8 @@
           <DockPanel><TextBlock x:Name="PageTitle" Text="接收" FontSize="23" FontWeight="SemiBold"/><Button Style="{StaticResource QuietButton}" Content="↗" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-5,0" Click="OpenFolder" ToolTip="打开接收目录" AutomationProperties.Name="打开接收目录"/></DockPanel>
           <ScrollViewer x:Name="ReceivePage" Grid.Row="1" VerticalScrollBarVisibility="Hidden" ScrollChanged="ContentScrolled"><StackPanel Margin="0,0,0,95">
             <Grid Height="105" Margin="0,8,0,0" IsHitTestVisible="False"><Ellipse Width="94" Height="94" Stroke="#ECEEF4"/><Ellipse Width="71" Height="71" Stroke="#E0E5EF" StrokeThickness="1.2"/><Ellipse Width="47" Height="47" Stroke="#CAD4E6" StrokeThickness="1.6"/><Path Data="M 0,17 L 11,0 L 22,17 Z" Fill="#8094B6" Stretch="Fill" Width="22" Height="17" Margin="0,2,0,0"/></Grid>
-            <TextBlock Text="等待连接" FontSize="19" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,7"/><TextBlock Text="原生隔空投送接收尚未就绪" Style="{StaticResource Caption}" HorizontalAlignment="Center"/>
-            <Button x:Name="ScanButton" Content="检查连接" Foreground="White" Background="#437AE1" BorderBrush="#437AE1" Padding="19,9" HorizontalAlignment="Center" Margin="0,20,0,14" Click="ScanHardware"/>
+            <TextBlock Text="等待连接" FontSize="19" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,7"/><TextBlock Text="{Binding ReceiverStatus}" Style="{StaticResource Caption}" HorizontalAlignment="Center" TextAlignment="Center"/>
+            <Button x:Name="ScanButton" Content="开启接收" Foreground="White" Background="#437AE1" BorderBrush="#437AE1" Padding="19,9" HorizontalAlignment="Center" Margin="0,20,0,14" Click="ToggleReceiver"/>
             <TextBlock Text="{Binding DeviceName}" Style="{StaticResource Caption}" HorizontalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
           </StackPanel></ScrollViewer>
           <Grid x:Name="HistoryPage" Grid.Row="1" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="43"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -38,7 +38,7 @@
             <TextBlock Text="设备名称" Style="{StaticResource Caption}"/><TextBox x:Name="DeviceNameBox" Text="{Binding DeviceName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="12" MaxLength="63" Padding="9,7" Margin="0,7,0,17" BorderBrush="#E1E3E9"/>
             <DockPanel><TextBlock Text="接收位置" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/><Button Content="更改" Style="{StaticResource QuietButton}" HorizontalAlignment="Right" Click="ChooseFolder"/></DockPanel><TextBlock Text="{Binding ReceiveDirectory}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,13"/>
             <CheckBox Content="保持窗口置顶" IsChecked="{Binding AlwaysOnTop}" FontSize="12"/><CheckBox Content="流畅导航动效" IsChecked="{Binding MotionEnabled}" FontSize="12"/><CheckBox Content="减少玻璃透明度" IsChecked="{Binding HighContrast}" FontSize="12"/>
-            <Button Content="保存设置" Foreground="White" Background="#437AE1" BorderBrush="#437AE1" HorizontalAlignment="Left" Padding="15,8" Margin="0,17,0,15" Click="SaveSettings"/><TextBlock Text="LiquidGlassWinAirDrop 0.2&#x0a;独立开发预览版" Style="{StaticResource Caption}"/>
+            <Button Content="保存设置" Foreground="White" Background="#437AE1" BorderBrush="#437AE1" HorizontalAlignment="Left" Padding="15,8" Margin="0,17,0,15" Click="SaveSettings"/><TextBlock Text="AirDrop 0.2&#x0a;独立开发预览版" Style="{StaticResource Caption}"/>
           </StackPanel></ScrollViewer>
         </Grid>
         <Border Grid.RowSpan="2" Height="98" VerticalAlignment="Bottom" IsHitTestVisible="False"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#00FCFCFD"/><GradientStop Color="#C0FCFCFD" Offset="0.48"/><GradientStop Color="#F4FCFCFD" Offset="1"/></LinearGradientBrush></Border.Background></Border>
