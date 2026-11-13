@@ -52,3 +52,9 @@ Radio、AWDL host、Network和TLS全部就绪；AWDL日志在2秒内出现peers1
 ### 修复后链路观察（17:57+08）
 
 第二次USB初始化约43秒。AWDL、IPv6桥和TLS已持续运行超过30秒，peers1且action收发持续增长；BLE等待15秒仍Waiting并退出后，主链保持运行，故障隔离生效。本机另行向127.0.0.1发Discover确认200/ReceiverComputerName=ASUS，该查询是本地诊断，不能当成手机请求。等待用户手机分享列表反馈，真实文件传输尚无证据。
+
+### BLE等待语义修正（18:00+08）
+
+Microsoft官方枚举说明Waiting为等待服务时间，Started才是已广播： https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementpublisherstatus 。原15秒后退出逻辑会丢弃排队请求，已改成保持请求，状态变化才记录，Aborted才退出；增加Seconds参数供有时限硬件验证，finally停止Publisher。
+
+ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，结束exit0且主动Stop，未观察Started，不能声称BLE广播成功。该测试不修改蓝牙驱动、服务或其它应用。应用主链继续运行，等待手机反馈。脚本已复制到本机运行目录，下次启动辅助发现时生效。

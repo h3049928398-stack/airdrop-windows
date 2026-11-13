@@ -1,5 +1,5 @@
 # Windows PowerShell 5.1. Independent BLE helper; -ValidateOnly never advertises.
-param([switch]$ValidateOnly)
+param([switch]$ValidateOnly,[ValidateRange(0,3600)][int]$Seconds=0)
 $ErrorActionPreference='Stop'
 try {
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
@@ -29,8 +29,16 @@ public static class AirDropBlePayload {
     [AirDropBlePayload]::Attach($publisher,$section)
     if($ValidateOnly) { Write-Output 'BLE payload constructed; no advertisement started.'; exit 0 }
     $publisher.Start()
-    for($attempt=0;$attempt -lt 150 -and "$($publisher.Status)" -notin @('Started','Aborted');$attempt++) { Start-Sleep -Milliseconds 100 }
-    Write-Output "BLE publisher: $($publisher.Status)"
-    if("$($publisher.Status)" -ne 'Started') { exit 1 }
-    try { while($true) { Start-Sleep -Seconds 1 } } finally { $publisher.Stop() }
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    $previous=''
+    try {
+        # Waiting is the documented service-time queue, not an error. Keep the
+        # request alive so Windows can start it when advertising time is free.
+        while($Seconds -eq 0 -or $timer.Elapsed.TotalSeconds -lt $Seconds) {
+            $status="$($publisher.Status)"
+            if($status -ne $previous) { Write-Output "BLE publisher: $status"; $previous=$status }
+            if($status -eq 'Aborted') { exit 1 }
+            Start-Sleep -Milliseconds 250
+        }
+    } finally { $publisher.Stop() }
 } catch { Write-Error $_; exit 1 }
