@@ -1,6 +1,8 @@
 # LiquidGlassWinAirDrop
 
-独立开发的 Windows 原生桌面应用。使用 WPF 与自行绘制的玻璃面板、光晕、层次高光和指针视差，呈现受液态玻璃启发的界面。名称为 **LiquidGlassWinAirDrop**。
+独立开发的 Windows 原生桌面应用，名称为 **LiquidGlassWinAirDrop**。当前界面按用户草图改为约 **352×480 DIP** 的竖向小浮窗，默认贴近工作区右下角；内容区保持干净，底部为「接收／文件／连接／设置」四栏。
+
+液态玻璃效果集中于底部导航：采样本窗口内的内容，柔化背景后进行边缘折射、细微色散、亮边和选中透镜的弹簧位移。支持点击、拖动透镜、键盘左右切换。使用独立编写的小面积 CPU 采样器，不录制桌面、不安装系统主题，不是苹果官方渲染器。
 
 ## 当前版本的能力边界
 
@@ -12,11 +14,11 @@
 
 双击 `dist/LiquidGlassWinAirDrop/LiquidGlassWinAirDrop.exe`。当前机器已安装所需 .NET 10 Desktop Runtime；本版为依赖运行时的文件夹发行版，需要保留同目录的 DLL 与 JSON 文件。
 
-- 接收中心：显示真实硬件检查摘要和目录最新文件。
+- 接收：显示当前接收能力与设备名称，可运行只读连接检查。
 - 文件记录：列出所选接收目录中的文件，支持名称搜索；双击只在资源管理器中定位，不自动执行文件。
 - 设备与连接：通过 Windows SetupAPI 只读检查 USB Wi-Fi、独立蓝牙、原驱动和网络状态，不修改驱动或网络。
-- 偏好设置：修改设备名、接收目录、动画与玻璃对比度；点击保存后写入程序旁 `data/preferences.json`。
-- 通知区域：双击图标还原窗口，也可打开接收目录或退出。
+- 设置：修改设备名、接收目录、导航动画、减少透明度与置顶；点击保存后写入程序旁 `data/preferences.json`。顶部图钉也可切换并保存置顶状态。
+- 顶部空白区域可拖动。关闭或最小化按钮收起到托盘；双击托盘图标还原，托盘菜单可重新停靠右下角或退出。停靠使用当前显示器的工作区，避开任务栏。
 
 文件记录只代表接收目录的实际内容，**不把用户自行放入的文件标记为 AirDrop 传输**。`Received` 目录中的文件目前仍需要由用户或后续接收引擎写入。
 
@@ -28,7 +30,7 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Preview
 ```
 
-结果：`dist/LiquidGlassWinAirDrop`；验证报告：`artifacts/self-test.json`；五张原生 WPF 视图渲染位于 `artifacts/`。
+结果：`dist/LiquidGlassWinAirDrop`；验证报告：`artifacts/self-test.json`；五张原生 WPF 视图渲染位于 `artifacts/`。`material-proof.png` 为合成条纹的折射诊断样本，`material-check.json` 记录背景像素变化与局部透镜采样耗时，它们不是生产界面或 AirDrop 传输证据。
 
 ```powershell
 .\dist\LiquidGlassWinAirDrop\LiquidGlassWinAirDrop.exe --diagnose .\artifacts\hardware.local.json

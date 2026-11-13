@@ -7,3 +7,4 @@ artifacts/*.log
 artifacts/*.zip
 .vs/
 .build/
+artifacts/ui-check-data/

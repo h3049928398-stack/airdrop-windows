@@ -36,20 +36,22 @@ public partial class App : System.Windows.Application
                 Shutdown(snapshot.Error is null ? 0 : 1);
                 return;
             }
-            string? preview = null;
+            string? preview = null, uiReport = null;
             if (e.Args.Length > 0)
             {
                 if (e.Args.Length == 2 && e.Args[0] == "--preview") preview = Path.GetFullPath(e.Args[1]);
+                else if (e.Args.Length == 2 && e.Args[0] == "--ui-check") uiReport = Path.GetFullPath(e.Args[1]);
                 else throw new ArgumentException("Unrecognized arguments");
             }
-            if (preview is null)
+            if (preview is null && uiReport is null)
             {
                 _singleInstance = new Mutex(true, "Local\\LiquidGlassWinAirDrop.Desktop", out var created);
                 if (!created) { Shutdown(); return; }
             }
-            var store = new PreferenceStore(Path.Combine(AppContext.BaseDirectory, "data"));
+            var store = new PreferenceStore(uiReport is null ? Path.Combine(AppContext.BaseDirectory, "data") :
+                Path.Combine(Path.GetDirectoryName(uiReport)!, "ui-check-data"));
             var preferences = store.Load();
-            var window = new MainWindow(store, preferences, preview);
+            var window = new MainWindow(store, preferences, preview, uiReport);
             MainWindow = window;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             window.Show();

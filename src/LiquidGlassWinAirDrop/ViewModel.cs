@@ -11,7 +11,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     private string _deviceName = "";
     private string _receiveDirectory = "";
-    private bool _motion = true, _contrast;
+    private bool _motion = true, _contrast, _alwaysOnTop = true;
     private HardwareSnapshot? _snapshot;
     private IReadOnlyList<FileEntry> _allFiles = Array.Empty<FileEntry>();
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -21,6 +21,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ReceiveDirectory { get => _receiveDirectory; set { _receiveDirectory = value; Notify(); } }
     public bool MotionEnabled { get => _motion; set { _motion = value; Notify(); } }
     public bool HighContrast { get => _contrast; set { _contrast = value; Notify(); } }
+    public bool AlwaysOnTop { get => _alwaysOnTop; set { _alwaysOnTop = value; Notify(); } }
     public string FileCountLabel => $"{_allFiles.Count} 个文件";
     public string LatestTitle => _allFiles.Count == 0 ? "还没有文件，留一点期待。" : _allFiles[0].Name;
     public string LatestSubtitle => _allFiles.Count == 0 ? "接收目录中的文件将自动出现在这里。" : _allFiles[0].Detail + " · " + _allFiles[0].SizeLabel;
@@ -35,9 +36,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ReceiveDirectory = preferences.ReceiveDirectory;
         MotionEnabled = preferences.MotionEnabled;
         HighContrast = preferences.HighContrast;
+        AlwaysOnTop = preferences.AlwaysOnTop;
     }
 
-    public Preferences Preferences => new() { DeviceName = DeviceName, ReceiveDirectory = ReceiveDirectory, MotionEnabled = MotionEnabled, HighContrast = HighContrast };
+    public Preferences Preferences => new() { DeviceName = DeviceName, ReceiveDirectory = ReceiveDirectory, MotionEnabled = MotionEnabled, HighContrast = HighContrast, AlwaysOnTop = AlwaysOnTop };
 
     public void UpdateHardware(HardwareSnapshot snapshot)
     {

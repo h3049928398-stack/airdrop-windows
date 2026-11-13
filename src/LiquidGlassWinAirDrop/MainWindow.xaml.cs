@@ -22,26 +22,28 @@ public partial class MainWindow : Window
     private readonly PreferenceStore _store;
     private readonly FolderCatalog _catalog = new();
     private readonly MainViewModel _model = new();
-    private readonly CancellationTokenSource _lifetime = new();
     private readonly string? _preview;
+    private readonly string? _uiReport;
     private Preferences _saved;
-    private bool _scanning, _closed;
+    private bool _scanning, _closed, _exitRequested;
     private int _folderRevision;
-    private readonly Dictionary<Border, Brush> _originalSurfaces = [];
+    private DispatcherOperation? _backdropRequest;
     private System.Windows.Forms.NotifyIcon? _tray;
 
-    public MainWindow(PreferenceStore store, Preferences preferences, string? preview)
+    public MainWindow(PreferenceStore store, Preferences preferences, string? preview, string? uiReport = null)
     {
         _store = store;
         _saved = preferences;
         _preview = preview;
+        _uiReport = uiReport;
         InitializeComponent();
+        BottomNavigation.SelectionChanged += Navigate;
         _model.Load(preferences);
         DataContext = _model;
         _catalog.Changed += OnFolderChanged;
         _model.PropertyChanged += (_, e) =>
         {
-            if (IsLoaded && e.PropertyName is nameof(MainViewModel.MotionEnabled) or nameof(MainViewModel.HighContrast)) ApplyAppearance();
+            if (IsLoaded && e.PropertyName is nameof(MainViewModel.MotionEnabled) or nameof(MainViewModel.HighContrast) or nameof(MainViewModel.AlwaysOnTop)) ApplyAppearance();
         };
     }
 
@@ -49,29 +51,37 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (_preview is null) { WindowPlacement.Dock(this); CreateTray(); }
             _catalog.Watch(_saved.ReceiveDirectory);
             await RefreshFilesAsync();
             await RefreshHardwareAsync();
             if (_closed) return;
             ApplyAppearance();
+            CaptureBackdrop();
+            if (_uiReport is not null) { await RunUiCheckAsync(_uiReport); return; }
             if (_preview is not null)
             {
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
                 Capture(_preview);
-                foreach (var page in new[] { "devices", "settings", "history" })
+                foreach (var item in new[] { (Index: 2, Name: "devices"), (Index: 3, Name: "settings"), (Index: 1, Name: "history") })
                 {
-                    Descendants<RadioButton>(this).First(x => (string?)x.Tag == page).IsChecked = true;
+                    BottomNavigation.Select(item.Index, false);
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
-                    Capture(Path.Combine(Path.GetDirectoryName(_preview)!, page + ".png"));
+                    CaptureBackdrop();
+                    Capture(Path.Combine(Path.GetDirectoryName(_preview)!, item.Name + ".png"));
                 }
-                ReceiveNav.IsChecked = true;
+                BottomNavigation.Select(0, false);
                 Width = MinWidth;
                 Height = MinHeight;
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
+                CaptureBackdrop();
                 Capture(Path.Combine(Path.GetDirectoryName(_preview)!, "compact.png"));
+                File.WriteAllText(Path.Combine(Path.GetDirectoryName(_preview)!, "layout-check.json"),
+                    System.Text.Json.JsonSerializer.Serialize(new { Width, Height, NavWidth = BottomNavigation.ActualWidth,
+                        NavHeight = BottomNavigation.ActualHeight, BottomGap = ActualHeight - BottomNavigation.TranslatePoint(new Point(0, BottomNavigation.ActualHeight), this).Y,
+                        DesktopCaptured = false, NativeAirDropAvailable = false }, PreferenceStore.JsonOptions));
                 Close();
             }
-            else CreateTray();
         }
         catch (Exception error)
         {
@@ -96,46 +106,87 @@ public partial class MainWindow : Window
         var menu = new System.Windows.Forms.ContextMenuStrip();
         menu.Items.Add("打开 LiquidGlassWinAirDrop", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
         menu.Items.Add("打开接收目录", null, (_, _) => Dispatcher.Invoke(() => OpenPath(_saved.ReceiveDirectory)));
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(Close));
+        menu.Items.Add("停靠右下角", null, (_, _) => Dispatcher.Invoke(() => { ShowFromTray(); WindowPlacement.Dock(this); }));
+        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(() => { _exitRequested = true; Close(); }));
         _tray.ContextMenuStrip = menu;
+    }
+
+    private async Task RunUiCheckAsync(string path)
+    {
+        var passed = new List<string>();
+        string? error = null;
+        void Check(bool value, string label) { if (!value) throw new Exception(label); passed.Add(label); }
+        try
+        {
+            var placement = WindowPlacement.Inspect(this);
+            Check(placement.RightGap >= 0 && placement.RightGap < 50 && placement.BottomGap >= 0 && placement.BottomGap < 50,
+                "native window is inside the monitor working area at its bottom-right corner");
+            Check(Width == 352 && Height == 480 && BottomNavigation.ActualWidth < 320, "compact window and four-item bottom navigation are laid out");
+            BottomNavigation.Select(2);
+            await Task.Delay(1000);
+            Check(PageTitle.Text == "连接" && DevicesPage.Visibility == Visibility.Visible && !BottomNavigation.IsAnimating,
+                "real WPF navigation changes pages and the spring unsubscribes after settling");
+            BottomNavigation.Select(1); await Task.Delay(45);
+            BottomNavigation.Select(3); await Task.Delay(1000);
+            Check(PageTitle.Text == "设置" && !BottomNavigation.IsAnimating, "interrupted navigation settles on the final requested page");
+            _model.MotionEnabled = false;
+            BottomNavigation.Select(0);
+            Check(!BottomNavigation.IsAnimating && ReceivePage.Visibility == Visibility.Visible, "reduced motion places the selector immediately");
+            _model.AlwaysOnTop = false; Check(!Topmost, "pin state updates the actual WPF topmost property");
+            Close(); Check(!IsVisible && !_closed, "close hides the window and keeps its tray lifecycle alive");
+            ShowFromTray(); Check(IsVisible && _tray?.Visible == true, "tray restore shows the same live window");
+        }
+        catch (Exception failure) { error = failure.ToString(); }
+        finally
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path,System.Text.Json.JsonSerializer.Serialize(new { Success = error is null, Passed = passed, Error = error,
+                Input = "application-owned WPF state transitions; physical pointer drag not automated" },PreferenceStore.JsonOptions));
+            _exitRequested = true; Close();
+            if (error is not null) System.Windows.Application.Current.Shutdown(1);
+        }
     }
 
     private void ShowFromTray() { Show(); WindowState = WindowState.Normal; Activate(); }
     private void DragTitle(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is DependencyObject source && Ancestors(source).Any(x => x is System.Windows.Controls.Button)) return;
-        if (e.ClickCount == 2) ToggleMaximize(); else if (e.LeftButton == MouseButtonState.Pressed) DragMove();
+        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
     }
     private static IEnumerable<DependencyObject> Ancestors(DependencyObject current)
     {
         for (var next = current; next is not null; next = VisualTreeHelper.GetParent(next)) yield return next;
     }
-    private void Minimize(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
-    private void Maximize(object sender, RoutedEventArgs e) => ToggleMaximize();
-    private void ToggleMaximize() { WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
-    private void CloseWindow(object sender, RoutedEventArgs e) => Close();
+    private void Minimize(object sender, RoutedEventArgs e) => Hide();
+    private void CloseWindow(object sender, RoutedEventArgs e) => Hide();
+    private void TogglePin(object sender, RoutedEventArgs e)
+    {
+        _model.AlwaysOnTop = !_model.AlwaysOnTop;
+        try { _saved = _saved with { AlwaysOnTop = _model.AlwaysOnTop }; _store.Save(_saved); }
+        catch (Exception error) { Feedback("置顶已切换，保存失败：" + error.Message); }
+    }
 
-    private void Navigate(object sender, RoutedEventArgs e)
+    private void Navigate(int index)
     {
         if (!IsInitialized || ReceivePage is null) return;
-        var page = (sender as RadioButton)?.Tag as string ?? "receive";
+        var page = new[] { "receive", "history", "devices", "settings" }[index];
         ReceivePage.Visibility = page == "receive" ? Visibility.Visible : Visibility.Collapsed;
         HistoryPage.Visibility = page == "history" ? Visibility.Visible : Visibility.Collapsed;
         DevicesPage.Visibility = page == "devices" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "settings" ? Visibility.Visible : Visibility.Collapsed;
-        (PageTitle.Text, PageSubtitle.Text) = page switch
+        PageTitle.Text = page switch
         {
-            "history" => ("文件记录", "每一份文件，都有自己的位置。"),
-            "devices" => ("设备与连接", "看清连接状态，再让文件出发。"),
-            "settings" => ("偏好设置", "一点个性，恰到好处。"),
-            _ => ("接收中心", "把灵感和日常，轻盈地留在这里。")
+            "history" => "文件",
+            "devices" => "连接",
+            "settings" => "设置",
+            _ => "接收"
         };
+        ScheduleBackdrop();
     }
 
     private void ShowDevices(object sender, RoutedEventArgs e)
     {
-        var devicesNav = Descendants<RadioButton>(this).First(x => (string?)x.Tag == "devices");
-        devicesNav.IsChecked = true;
+        BottomNavigation.Select(2);
     }
 
     private async void ScanHardware(object sender, RoutedEventArgs e) => await RefreshHardwareAsync();
@@ -151,14 +202,15 @@ public partial class MainWindow : Window
             if (!_closed)
             {
                 _model.UpdateHardware(snapshot);
-                Feedback(snapshot.Error ?? "已完成只读检查，未更换驱动或启动无线广播。");
+                Feedback(snapshot.Error ?? "硬件已检查 · 原生接收开发中");
+                ScheduleBackdrop();
             }
         }
         catch (Exception error) { if (!_closed) Feedback("检查失败：" + error.Message); }
         finally
         {
             _scanning = false;
-            if (!_closed) { ScanButton.IsEnabled = true; ScanButton.Content = "⌁  检查连接"; }
+            if (!_closed) { ScanButton.IsEnabled = true; ScanButton.Content = "检查连接"; }
         }
     }
 
@@ -191,7 +243,8 @@ public partial class MainWindow : Window
     private void UpdateEmptyState()
     {
         EmptyHistory.Visibility = _model.Files.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        EmptyHistory.Text = string.IsNullOrEmpty(SearchBox.Text) ? "还没有文件记录。\n接收目录中的文件会显示在这里。" : "没有找到匹配的文件。";
+        EmptyHistoryDetail.Text = string.IsNullOrEmpty(SearchBox.Text) ? "接收目录中的文件会显示在这里" : "没有找到匹配的文件";
+        ScheduleBackdrop();
     }
 
     private void OpenFolder(object sender, RoutedEventArgs e) => OpenPath(_saved.ReceiveDirectory);
@@ -235,24 +288,37 @@ public partial class MainWindow : Window
 
     private void ApplyAppearance()
     {
-        var animate = _model.MotionEnabled && SystemParameters.ClientAreaAnimation && _preview is null;
-        Halo.BeginAnimation(OpacityProperty, null);
-        Halo.Opacity = 0.8;
-        if (animate) Halo.BeginAnimation(OpacityProperty, new DoubleAnimation(0.45, 0.9, TimeSpan.FromSeconds(4.5)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
-        foreach (var border in Descendants<Border>(this).Where(x => x.Style == FindResource("GlassPanel")))
-        {
-            if (!_originalSurfaces.ContainsKey(border)) _originalSurfaces[border] = border.Background;
-            border.Background = _model.HighContrast ? new SolidColorBrush(Color.FromRgb(249, 250, 255)) : _originalSurfaces[border];
-        }
-        if (!animate) { HaloMotion.X = 0; HaloMotion.Y = 0; }
+        Topmost = _preview is null && _model.AlwaysOnTop;
+        PinButton.Opacity = _model.AlwaysOnTop ? 1 : 0.45;
+        PinButton.ToolTip = _model.AlwaysOnTop ? "取消置顶" : "保持置顶";
+        BottomNavigation.SetPreferences(_model.MotionEnabled && _preview is null, _model.HighContrast);
+        ScheduleBackdrop();
     }
 
-    private void OnPointerMove(object sender, System.Windows.Input.MouseEventArgs e)
+    private void ContentScrolled(object sender, ScrollChangedEventArgs e) => ScheduleBackdrop();
+    private void ClipScene(object sender, SizeChangedEventArgs e)
     {
-        if (!_model.MotionEnabled || !SystemParameters.ClientAreaAnimation || _preview is not null) return;
-        var position = e.GetPosition(this);
-        HaloMotion.X = (position.X / ActualWidth - 0.5) * 20;
-        HaloMotion.Y = (position.Y / ActualHeight - 0.5) * 16;
+        ContentLayer.Clip = new RectangleGeometry(new Rect(new Point(),e.NewSize),22,22);
+        ScheduleBackdrop();
+    }
+    private void ScheduleBackdrop()
+    {
+        if (!IsLoaded || _closed || _backdropRequest?.Status == DispatcherOperationStatus.Pending) return;
+        _backdropRequest = Dispatcher.BeginInvoke(DispatcherPriority.Render, () => { _backdropRequest = null; CaptureBackdrop(); });
+    }
+    private void CaptureBackdrop()
+    {
+        if (_closed || BottomNavigation.ActualWidth < 10) return;
+        ContentLayer.UpdateLayout();
+        var point = BottomNavigation.TranslatePoint(new Point(), ContentLayer);
+        int width = (int)BottomNavigation.ActualWidth, height = (int)BottomNavigation.ActualHeight;
+        var brush = new VisualBrush(ContentLayer) { ViewboxUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(point.X, point.Y, width, height), Stretch = Stretch.Fill };
+        var drawing = new DrawingVisual();
+        using (var context = drawing.RenderOpen()) context.DrawRectangle(brush, null, new Rect(0,0,width,height));
+        var image = new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32);
+        image.Render(drawing); image.Freeze();
+        BottomNavigation.SetBackdrop(image);
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
@@ -264,7 +330,7 @@ public partial class MainWindow : Window
             foreach (var nested in Descendants<T>(child)) yield return nested;
         }
     }
-    private void Feedback(string message) { if (!_closed) FeedbackText.Text = message; }
+    private void Feedback(string message) { if (!_closed) { FeedbackText.Text = message; BottomNavigation.ToolTip = message; } }
 
     public void Capture(string path)
     {
@@ -279,10 +345,10 @@ public partial class MainWindow : Window
     }
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        if (_preview is null && !_exitRequested) { e.Cancel = true; Hide(); return; }
         _closed = true;
-        _lifetime.Cancel();
+        _backdropRequest?.Abort();
         _catalog.Dispose();
         _tray?.Dispose();
-        _lifetime.Dispose();
     }
 }

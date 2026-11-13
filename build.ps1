@@ -18,6 +18,9 @@ if ($Preview) {
     $png = Join-Path $projectRoot 'artifacts\receive-center.png'
     $render = Start-Process -FilePath $exe -ArgumentList @('--preview', ('"' + $png + '"')) -WindowStyle Hidden -PassThru -Wait
     if ($render.ExitCode -ne 0) { throw "Preview failed. See $png.error.txt" }
+    $uiReport = Join-Path $projectRoot 'artifacts\ui-check.json'
+    $ui = Start-Process -FilePath $exe -ArgumentList @('--ui-check', ('"' + $uiReport + '"')) -WindowStyle Hidden -PassThru -Wait
+    if ($ui.ExitCode -ne 0) { throw "UI lifecycle check failed. See $uiReport" }
 }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'README.md') -Destination $output -Force
 Write-Output "Built and tested: $exe"

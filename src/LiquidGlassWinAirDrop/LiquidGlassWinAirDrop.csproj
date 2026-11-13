@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>LiquidGlassWinAirDrop</AssemblyName>
     <RootNamespace>LiquidGlassWinAirDrop</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Description>An independent glass-inspired Windows file receiving application.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('..\..\assets\LiquidGlassWinAirDrop.ico')">..\..\assets\LiquidGlassWinAirDrop.ico</ApplicationIcon>

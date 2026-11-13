@@ -69,6 +69,7 @@ public static class SelfTest
             model.SetFiles(FolderCatalog.Read(received), "玻璃");
             Check(model.Files.Count == 2, "history search filters actual files");
             Check(!new NativeAirDropReceiver().IsAvailable, "unfinished AirDrop engine never reports ready");
+            MaterialChecks.Run(passed,Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
         }
         catch (Exception failure) { error = failure.ToString(); }
         finally
