@@ -8,4 +8,4 @@
 
 用户已手动完成Zadig绑定。2026-11-13 17:50+08只读确认0BDA:C811为WinUSB/ProblemCode0，libusb probe exit0；内置8852BE仍Up，蓝牙BTHUSB正常。之后的初始化/原始RX/AWDL/手机验收以VALIDATION和WORK_QUEUE的最新补充为准。此前安装器启动被工具拒绝，未绕过。回滚手册和备份见DRIVER_RUNBOOK。
 
-构建：build.ps1 -Preview；原生：tools/Build-Native.ps1；软件检查：AirDrop.exe --engine-check <报告JSON>。普通启动不自动RF，显式--receive或界面开启才启动接收。实际传输仍需用户在手机上发起并在Windows确认。没有自动推送或对外发布。
+构建：build.ps1 -Preview；原生：tools/Build-Native.ps1；软件检查：AirDrop.exe --engine-check <报告JSON>。普通启动不自动RF，显式--receive或界面开启才启动接收。已完成一次真实iPhone发现ASUS→Windows同意→图片接收，3,401,455字节/4.226秒，图片解码通过。原始日志和本地SHA256见VALIDATION；没有手机源哈希，不声称源/目标哈希已对比。多文件和稳定性未验收，BLE仍Waiting。后续传输仍需用户在手机发起并在Windows确认。没有自动推送或对外发布。

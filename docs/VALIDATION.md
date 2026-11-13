@@ -58,3 +58,15 @@ Radio、AWDL host、Network和TLS全部就绪；AWDL日志在2秒内出现peers1
 Microsoft官方枚举说明Waiting为等待服务时间，Started才是已广播： https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementpublisherstatus 。原15秒后退出逻辑会丢弃排队请求，已改成保持请求，状态变化才记录，Aborted才退出；增加Seconds参数供有时限硬件验证，finally停止Publisher。
 
 ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，结束exit0且主动Stop，未观察Started，不能声称BLE广播成功。该测试不修改蓝牙驱动、服务或其它应用。应用主链继续运行，等待手机反馈。脚本已复制到本机运行目录，下次启动辅助发现时生效。
+
+## 2026-11-13 18:05 +08：首次真实 iPhone 原生接收成功
+
+用户确认在iPhone隔空投送分享列表看到了ASUS，并尝试发送。随后检查到真实协议记录：18:05:23 Discover200，18:05:25 iPhone Ask单个图片，18:05:27.623确认后Ask200；18:05:27.7713859 transfer_started，18:05:31.9969228 files_received，Upload200。
+
+- 实际落盘：3,401,455字节，与Ask声明的3,401,455B一致。文件名和绝对路径保留在本地报告及原始日志，不把用户图片纳入Git。
+- 本机System.Drawing解码成功，2544×3408像素；没有重编码、转换或覆盖接收文件。
+- 本地SHA256：CF696D42E754AA844BFA293E7E2310F4E4EFF16B886D413DC2299F23B56F2475。没有手机源文件的哈希，未完成源/目标哈希对比，不能将计算本地哈希说成端到端哈希一致。
+- 起始至落盘4.2255369秒；按实际文件字节数计算0.8049758 MB/s（十进制MB）。包括约2秒归档尾标记宽限/收尾，不用PHY速率或网络归档压缩字节代替文件大小。该次完整归档未带结束标记，协议在宽限后保留完整文件并回复200；日志已保留。
+- 证据：artifacts/iphone-transfer.local.json、dist/AirDrop/data/logs/engine.log以及data/Received中的原文件。此前17:57:48人工本地Discover单独标注，不混作手机事件；本次18:05手机发起与文件事件匹配。
+- 成功范围：本机现有RTL8811CU/WinUSB + 独立接收链，单个真实iPhone图片，发现、用户确认和落盘通过。BLE仍没有Started证据；此次发现成功不能反推BLE已广播。没有额外iPhone应用、WSL/虚拟机或DropBridge运行依赖。
+- 尚未覆盖：重复/多文件/大视频、取消/断线/重启/驱动恢复、长期稳定性、其它iOS和其它机器。应用保持运行，未打断用户继续使用。
