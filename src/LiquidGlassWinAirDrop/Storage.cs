@@ -17,6 +17,7 @@ public sealed record Preferences
     public bool MotionEnabled { get; init; } = true;
     public bool HighContrast { get; init; }
     public bool AlwaysOnTop { get; init; } = true;
+    public bool StartWithWindows { get; init; }
 }
 
 public sealed class PreferenceStore(string dataRoot)

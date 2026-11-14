@@ -70,3 +70,12 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - 证据：artifacts/iphone-transfer.local.json、dist/AirDrop/data/logs/engine.log以及data/Received中的原文件。此前17:57:48人工本地Discover单独标注，不混作手机事件；本次18:05手机发起与文件事件匹配。
 - 成功范围：本机现有RTL8811CU/WinUSB + 独立接收链，单个真实iPhone图片，发现、用户确认和落盘通过。BLE仍没有Started证据；此次发现成功不能反推BLE已广播。没有额外iPhone应用、WSL/虚拟机或DropBridge运行依赖。
 - 尚未覆盖：重复/多文件/大视频、取消/断线/重启/驱动恢复、长期稳定性、其它iOS和其它机器。应用保持运行，未打断用户继续使用。
+
+## 2026-11-14：开机自启动
+
+- 设置新增“开机自启动”，默认关闭，点击保存设置后生效。开启/关闭仅写入/删除HKCU Run下本应用独有的LiquidGlassWinAirDrop值，不需要管理员权限；命令引用完整exe路径并带--startup，支持空格和Unicode路径。
+- 启动参数--startup只启动应用并隐藏到托盘，不自动开启USB/AWDL接收。双击托盘恢复原窗口；启动时先透明再隐藏，避免窗口闪现。保存设置失败会恢复原启动项，启动时从系统注册读取当前注册状态。预览/UI检查不修改真实启动项。
+- Release发布成功，17项原基础/材质和8项常规WPF检查通过。新增隔离HKCU测试5项通过：默认关闭、带空格/Unicode路径注册、关闭只删自己的项、保存失败还原已开启项、开启失败不遗留项。测试子键清理完毕，未启用真实开机启动。
+- --startup-check的10项WPF检查通过，含隐藏启动时托盘存在，以及恢复后窗口可见/不透明；Settings原生渲染已查看，新增选项在小窗内可见，其余设置和保存按钮仍可滚动访问。
+- 本机应用已更新并重新启动，用户设置、接收文件与后端目录保留。未更换驱动、重启系统或执行真实注销/登录，因此不把参数启动测试称为真实登录验收。
+- 证据：artifacts/startup-registration.json、startup-ui-check.json、self-test.json、ui-check.json、settings.png。真实Run项是否启用由用户在设置中决定。

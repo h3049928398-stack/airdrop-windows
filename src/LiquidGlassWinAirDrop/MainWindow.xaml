@@ -37,6 +37,8 @@
           <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Hidden" ScrollChanged="ContentScrolled"><StackPanel Margin="0,5,0,95">
             <TextBlock Text="设备名称" Style="{StaticResource Caption}"/><TextBox x:Name="DeviceNameBox" Text="{Binding DeviceName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="12" MaxLength="63" Padding="9,7" Margin="0,7,0,17" BorderBrush="#E1E3E9"/>
             <DockPanel><TextBlock Text="接收位置" Style="{StaticResource RowTitle}" VerticalAlignment="Center"/><Button Content="更改" Style="{StaticResource QuietButton}" HorizontalAlignment="Right" Click="ChooseFolder"/></DockPanel><TextBlock Text="{Binding ReceiveDirectory}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,13"/>
+            <CheckBox Content="开机自启动" IsChecked="{Binding StartWithWindows}" FontSize="12"/>
+            <TextBlock Text="登录 Windows 后收起到托盘，保存后生效" Style="{StaticResource Caption}" TextWrapping="Wrap"/>
             <CheckBox Content="保持窗口置顶" IsChecked="{Binding AlwaysOnTop}" FontSize="12"/><CheckBox Content="流畅导航动效" IsChecked="{Binding MotionEnabled}" FontSize="12"/><CheckBox Content="减少玻璃透明度" IsChecked="{Binding HighContrast}" FontSize="12"/>
             <Button Content="保存设置" Foreground="White" Background="#437AE1" BorderBrush="#437AE1" HorizontalAlignment="Left" Padding="15,8" Margin="0,17,0,15" Click="SaveSettings"/><TextBlock Text="AirDrop 0.2&#x0a;独立开发预览版" Style="{StaticResource Caption}"/>
           </StackPanel></ScrollViewer>

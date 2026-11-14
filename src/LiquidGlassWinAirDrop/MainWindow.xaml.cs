@@ -25,6 +25,8 @@ public partial class MainWindow : Window
     private readonly string? _preview;
     private readonly string? _uiReport;
     private readonly bool _startReceiving;
+    private readonly bool _startHidden;
+    private readonly WindowsStartup _startup = new(Environment.ProcessPath ?? throw new InvalidOperationException("无法定位应用程序。"));
     private Preferences _saved;
     private bool _scanning, _closed, _exitRequested;
     private int _folderRevision;
@@ -32,13 +34,14 @@ public partial class MainWindow : Window
     private System.Windows.Forms.NotifyIcon? _tray;
     private readonly NativeAirDropReceiver _receiver = new();
 
-    public MainWindow(PreferenceStore store, Preferences preferences, string? preview, string? uiReport = null,bool startReceiving=false)
+    public MainWindow(PreferenceStore store, Preferences preferences, string? preview, string? uiReport = null,bool startReceiving=false,bool startHidden=false)
     {
         _store = store;
         _saved = preferences;
         _preview = preview;
         _uiReport = uiReport;
         _startReceiving=startReceiving;
+        _startHidden=startHidden;
         InitializeComponent();
         BottomNavigation.SelectionChanged += Navigate;
         _model.Load(preferences);
@@ -72,6 +75,12 @@ public partial class MainWindow : Window
         try
         {
             if (_preview is null) { WindowPlacement.Dock(this); CreateTray(); }
+            if(_startHidden) { Hide(); Opacity=1; }
+            if(_preview is null && _uiReport is null)
+            {
+                try { _model.StartWithWindows=_startup.IsEnabled(); }
+                catch(Exception error) { Feedback("无法读取开机自启动状态："+error.Message); }
+            }
             _catalog.Watch(_saved.ReceiveDirectory);
             await RefreshFilesAsync();
             await RefreshHardwareAsync();
@@ -139,6 +148,12 @@ public partial class MainWindow : Window
         void Check(bool value, string label) { if (!value) throw new Exception(label); passed.Add(label); }
         try
         {
+            if(_startHidden)
+            {
+                Check(!IsVisible && _tray?.Visible==true,"startup mode hides the window and creates its tray icon");
+                ShowFromTray();
+                Check(IsVisible && Opacity==1,"startup tray restore reveals a fully opaque live window");
+            }
             var placement = WindowPlacement.Inspect(this);
             Check(placement.RightGap >= 0 && placement.RightGap < 50 && placement.BottomGap >= 0 && placement.BottomGap < 50,
                 "native window is inside the monitor working area at its bottom-right corner");
@@ -316,7 +331,8 @@ public partial class MainWindow : Window
             var probe = Path.Combine(preferences.ReceiveDirectory, ".liquidglass-" + Guid.NewGuid().ToString("N") + ".tmp");
             try { using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { } }
             finally { if (File.Exists(probe)) File.Delete(probe); }
-            _store.Save(preferences);
+            if(_preview is not null || _uiReport is not null) _store.Save(preferences);
+            else _startup.Save(preferences.StartWithWindows,()=>_store.Save(preferences));
             _saved = preferences;
             _catalog.Watch(preferences.ReceiveDirectory);
             await RefreshFilesAsync();
