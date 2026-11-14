@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([switch]$Preview)
+param([switch]$Preview, [string]$OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $env:DOTNET_CLI_HOME = Join-Path $projectRoot '.build\dotnet-home'
@@ -7,7 +7,7 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_ADD_GLOBAL_TOOLS_TO_PATH = '0'
 $env:NUGET_PACKAGES = Join-Path $projectRoot '.build\packages'
 $project = Join-Path $projectRoot 'src\LiquidGlassWinAirDrop\LiquidGlassWinAirDrop.csproj'
-$output = Join-Path $projectRoot 'dist\AirDrop'
+$output = if($OutputDirectory) { [IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $projectRoot 'dist\AirDrop' }
 & dotnet publish $project -c Release --self-contained false -o $output --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 $exe = Join-Path $output 'AirDrop.exe'

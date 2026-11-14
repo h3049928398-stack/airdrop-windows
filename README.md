@@ -6,7 +6,7 @@
 
 ## 运行
 
-双击 `dist/AirDrop/AirDrop.exe`，保留同目录文件；需要 .NET 10 Desktop Runtime。界面支持设备名、接收目录、文件搜索、动画/透明度、置顶和收起托盘。文件页列出真实目录内容，不将手动放入的文件冒称 AirDrop 传输。设置中的“开机自启动”默认关闭，勾选后点击保存设置生效；Windows登录后应用收起到托盘，双击托盘图标打开。取消勾选并保存即可关闭自启动。自启动只打开应用，接收仍需手动开启。
+双击 `../runtime/AirDrop/AirDrop.exe`，保留同目录文件；需要 .NET 10 Desktop Runtime。界面支持设备名、接收目录、文件搜索、动画/透明度、置顶和收起托盘。文件页列出真实目录内容，不将手动放入的文件冒称 AirDrop 传输。设置中的“开机自启动”默认关闭，勾选后点击保存设置生效；Windows登录后应用收起到托盘，双击托盘图标打开。取消勾选并保存即可关闭自启动。自启动只打开应用，接收仍需手动开启。
 
 WinUSB 准备完成后，手动点击「开启接收」才启动专用 USB、AWDL、用户态 IPv6/TCP、TLS 和 BLE 发现组件。每次请求需明确确认，45秒无答复默认拒绝；文件默认存入设置的目录。关闭窗口收起托盘，托盘「退出」停止后台；Windows Job 负责应用意外退出时清理其子进程。
 
@@ -17,10 +17,10 @@ WinUSB 准备完成后，手动点击「开启接收」才启动专用 USB、AWD
 本目录是独立 Git 工程，不引用父目录 DropBridge 的源代码、补丁、资源、安装包或二进制。允许的独立开源底层库版本见 `docs/native.lock.json`。
 
 ```powershell
-.\build.ps1 -Preview
+..\Build-AirDrop.ps1 -Preview
 .\tools\Restore-Sources.ps1 -WithBuildDependencies
-.\tools\Build-Native.ps1
-.\dist\AirDrop\AirDrop.exe --engine-check .\artifacts\engine-check.json
+..\Build-AirDrop.ps1 -Native
+..\runtime\AirDrop\AirDrop.exe --engine-check .\artifacts\engine-check.json
 ```
 
 GUI要求.NET 10 SDK；原生层要求 Visual Studio C++/CMake/Ninja、Git。恢复脚本将依赖下载到本目录并核对固定提交、工具链归档SHA-256，不安装系统驱动。协议工作进程使用固定 LLVM-MinGW、libusb、Python 3.12.10；没有 WSL、虚拟机、Wintun 或 iPhone 端应用依赖。原生构建脚本已经在本机执行；从空白机器完整下载重建尚未验收。
@@ -32,3 +32,9 @@ GUI要求.NET 10 SDK；原生层要求 Visual Studio C++/CMake/Ninja、Git。恢
 `data/preferences.json`保存设置，`data/keys/`保存自签TLS私钥与稳定服务ID，`data/logs/engine.log`保存带时间的后台日志；私钥和本机标识不纳入Git。接收引擎仅在127.0.0.1:18771提供TLS，AWDL流量经用户态网络桥转入，不创建系统网络适配器或更改防火墙。
 
 驱动操作见 [本机绑定与恢复](docs/DRIVER_RUNBOOK.md)。准确进度见 [工作队列](docs/WORK_QUEUE.md)、[验证记录](docs/VALIDATION.md)、[第三方许可](docs/THIRD_PARTY.md)。本包仅用于本机研究；固件与运行库再分发、代码签名、真实设备与长期稳定性仍需单独处理。
+
+## 工作区目录（2026-11-14整理）
+
+当前运行版已迁至同级工作区runtime/AirDrop；源码仍保留本目录。旧DropBridge参考资料集中在../archive/DropBridge，不能用于本程序构建或运行。统一入口为根Build-AirDrop.ps1及启动AirDrop.cmd，详情见../docs/DIRECTORY_LAYOUT.md。
+
+GUI build.ps1、tools/Build-Native.ps1、tools/Package-Engine.ps1支持-OutputDirectory指定运行输出目录；工作区构建入口会指定../runtime/AirDrop。单独复制本源码工程时，不传参数仍默认输出本目录dist/AirDrop；无旧项目依赖。

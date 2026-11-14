@@ -79,3 +79,9 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - --startup-check的10项WPF检查通过，含隐藏启动时托盘存在，以及恢复后窗口可见/不透明；Settings原生渲染已查看，新增选项在小窗内可见，其余设置和保存按钮仍可滚动访问。
 - 本机应用已更新并重新启动，用户设置、接收文件与后端目录保留。未更换驱动、重启系统或执行真实注销/登录，因此不把参数启动测试称为真实登录验收。
 - 证据：artifacts/startup-registration.json、startup-ui-check.json、self-test.json、ui-check.json、settings.png。真实Run项是否启用由用户在设置中决定。
+
+## 2026-11-14：整理迁移与显式输出验证
+
+当前运行目录为工作区runtime/AirDrop。迁移前后89个文件逐项大小/SHA256相同，保留数据和日志；从新目录运行基础17项及本地协议6项检查通过。构建新增OutputDirectory，在.build/layout-check独立发布通过17项检查，打包六个原生/协议入口与迁移运行版哈希相同；原生C++源码和二进制没有因布局而重编译。
+
+整理中发现无自有工作进程的临时NativeAirDropReceiver释放时也会发送全局停止事件（受限环境表现为UnauthorizedAccessException），这可能误停当前接收链。已在StopCore/Dispose中按自有进程列表加保护；保存失败报告，修复后自检通过。该修复已更新到新运行版；设置、密钥和既有文件不覆盖。详细迁移记录见工作区docs/REORGANIZATION_2026-11-14.md。

@@ -183,7 +183,7 @@ public sealed class NativeAirDropReceiver : IAirDropReceiver, IDisposable
     private async Task StopCoreAsync()
     {
         _stopping=true;
-        Signal("Local\\AirDrop.Network.Stop.v1"); Signal("Local\\AirDrop.Radio.Stop.v1");
+        if(_processes.Count>0) { Signal("Local\\AirDrop.Network.Stop.v1"); Signal("Local\\AirDrop.Radio.Stop.v1"); }
         foreach(var process in _processes.AsEnumerable().Reverse())
         {
             try
@@ -206,7 +206,7 @@ public sealed class NativeAirDropReceiver : IAirDropReceiver, IDisposable
     public void Dispose()
     {
         _stopping=true; _session?.Cancel();
-        Signal("Local\\AirDrop.Radio.Stop.v1"); Signal("Local\\AirDrop.Network.Stop.v1");
+        if(_processes.Count>0) { Signal("Local\\AirDrop.Radio.Stop.v1"); Signal("Local\\AirDrop.Network.Stop.v1"); }
         foreach(var p in _processes) { try { if(!p.HasExited)p.Kill(true); } catch(InvalidOperationException) { } p.Dispose(); }
         _processes.Clear(); _session?.Dispose();
         _job?.Dispose(); _job=null;

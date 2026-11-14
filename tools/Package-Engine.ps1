@@ -1,8 +1,9 @@
 [CmdletBinding()]
-param()
+param([string]$OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$output = Join-Path $root 'dist\AirDrop\backend'
+$runtime = if($OutputDirectory) { [IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $root 'dist\AirDrop' }
+$output = Join-Path $runtime 'backend'
 New-Item -ItemType Directory -Force $output,(Join-Path $output 'protocol'),(Join-Path $output 'licenses') | Out-Null
 $artifacts = @{
     '.build\radio-ninja\AirDrop.Radio.exe' = 'AirDrop.Radio.exe'

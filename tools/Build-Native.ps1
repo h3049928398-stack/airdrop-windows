@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 Push-Location $root
@@ -28,5 +28,5 @@ try {
         if($LASTEXITCODE -ne 0){throw "AWDL test failed: $name"}
         Write-Output "Passed: $name"
     }
-    & (Join-Path $PSScriptRoot 'Package-Engine.ps1')
+    & (Join-Path $PSScriptRoot 'Package-Engine.ps1') -OutputDirectory $OutputDirectory
 } finally { Pop-Location }
