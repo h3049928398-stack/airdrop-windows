@@ -85,3 +85,17 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 当前运行目录为工作区runtime/AirDrop。迁移前后89个文件逐项大小/SHA256相同，保留数据和日志；从新目录运行基础17项及本地协议6项检查通过。构建新增OutputDirectory，在.build/layout-check独立发布通过17项检查，打包六个原生/协议入口与迁移运行版哈希相同；原生C++源码和二进制没有因布局而重编译。
 
 整理中发现无自有工作进程的临时NativeAirDropReceiver释放时也会发送全局停止事件（受限环境表现为UnauthorizedAccessException），这可能误停当前接收链。已在StopCore/Dispose中按自有进程列表加保护；保存失败报告，修复后自检通过。该修复已更新到新运行版；设置、密钥和既有文件不覆盖。详细迁移记录见工作区docs/REORGANIZATION_2026-11-14.md。
+
+## 2026-11-15：Wisland控制中心与手机式子窗口
+
+- 为D:/AI/wisland新增“控制→隔空投送”磁贴及独立子窗口；风格跟随主题，350像素宽，接收关闭/所有人10分钟、设备名、状态/倒计时、接收/拒绝、实际进度/完成和打开目录。控制页原WLAN、蓝牙、代理/音量等功能保留。原控制页先SHA256核对并备份，配置、模型、其它服务不复制或重写。
+- AirDrop新增当前用户专用命名管道控制接口，JSON请求限4KB、超时4秒、不开放网络端口。wisland只连接单实例宿主，按需启动至托盘；start/stop/respond通过WPF线程操作既有NativeAirDropReceiver。无需新网卡或iPhone应用，不复制DropBridge源码或二进制。确认租约8秒、每1.5秒刷新，失联后新请求回退原WPF确认，未确认请求45秒拒绝。
+- 17项基础/材质、10项Qt扩展检查、4项真实IPC检查通过。新子窗口实际点击“所有人”后准备/运行/倒计时通过；Qt测试还覆盖关闭不停止、过期请求、指令映射、明暗布局及全局8线程被阻塞时独立控制线程仍响应。
+- 真机：用户报告在新子窗口确认接收成功。具体本机时间（Asia/Hong_Kong）为14:16:17 iPhone Ask，14:16:33.4429844 transfer_started，14:16:41.4363684 files_received，HTTP Upload200。文件10,092,594字节，与声明一致；GIF可解码640×696、32帧。实际字节/7.993384秒=1.262618MB/s（十进制）。本地SHA256 ECAAB946F31A8FA254D267189A34F4CDAF566ABD7794C00DBA8526DA88E44887；没有手机源哈希，未进行源/目标哈希比对。
+- 接收已完成但Qt进度最初滞留旧值，宿主状态正确；控制端改为专用单线程IPC执行器及Qt队列信号，避免共用后台池的阻塞，实际窗口已核对“接收完成”及文件名。修复前后原始日志保留。
+- 本机数据：artifacts/wisland-qt-check.log、wisland-iphone-transfer.local.json、wisland-airdrop-{light,dark}.png、wisland-controls.png、runtime/AirDrop/data/logs/engine.log。用户文件不提交，离屏截图不充当真实手机传输证据。
+- Wisland本机为下载解压目录，无Git。扩展原创源码、安装器、上游MIT许可证副本及文档保存在integrations/wisland，通过原文件哈希和安装清单防止覆盖未知修改。安装备份路径见该目录README。此次未进行多文件/大视频/长期或其它机器系统验收。
+
+### Wisland十分钟自动停止实测
+
+2026-11-15 14:14:02从真实子窗口选择所有人10分钟，14:24:02.9032178日志radio_stopped；管道isRunning=false/remainingSeconds=null/phase=idle，实际子窗口文本“接收已关闭”。仅剩AirDrop宿主进程，无Radio/AWDL/Network/Python接收进程。截止时间跨wisland重启仍保持，由宿主执行；实际等待完整10分钟，未调整系统时钟或生产计时参数。

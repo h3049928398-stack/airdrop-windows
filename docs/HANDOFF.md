@@ -15,3 +15,9 @@
 当前运行入口已改为工作区runtime/AirDrop/AirDrop.exe；源码、.build、upstream、artifacts保留原目录，历史测试记录中的dist/AirDrop路径反映当时位置。原始运行日志、data/keys、设置及既有Received全部迁入新位置，用户自选接收目录不变。
 
 旧参考工程已集中至../archive/DropBridge；旧预览版至../archive/old-previews。使用根Build-AirDrop.ps1构建到新runtime目录，支持-Native/-Preview；源码GUI/Native/Package脚本新增OutputDirectory用于独立指定输出。目录职责、迁移核验和恢复入口见工作区docs/DIRECTORY_LAYOUT.md与REORGANIZATION_2026-11-14.md。
+
+## 2026-11-15：Wisland集成入口
+
+新增integrations/wisland（MIT原创扩展及上游许可副本）。本机D:/AI/wisland控制页有隔空投送磁贴和独立子窗口；同用户命名管道控制runtime/AirDrop单实例，宿主计时10分钟，默认不自动广播，用户选择“所有人”才启动接收。详细安装、备份/恢复、协议和真机验证见该目录README及VALIDATION。
+
+新子窗口已完成一次真实iPhone GIF接收（10,092,594B/7.993s），以及状态刷新修复；不要只看早期README中的单张图片或BLE未Started历史结论。wisland安装目录没有Git，扩展代码在本工程版本化；不要提交它的config.json、API Key、模型或用户文件。

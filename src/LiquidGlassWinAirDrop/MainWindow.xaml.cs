@@ -56,6 +56,8 @@ public partial class MainWindow : Window
             if(!_closed) Dispatcher.BeginInvoke(async () =>
             {
                 if(_closed)return;
+                _requests[request.Id]=request;
+                if(DateTimeOffset.UtcNow<_controlLease)return;
                 ShowFromTray();
                 var names=string.Join(Environment.NewLine,request.Files.Take(6));
                 var answer=System.Windows.MessageBox.Show(this,"来自："+request.Sender+Environment.NewLine+names+Environment.NewLine+Environment.NewLine+"是否接收这些文件？", "AirDrop 接收请求",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No);
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
             });
         };
         _receiver.FilesReceived += OnFolderChanged;
+        _receiver.ProtocolMessage += ControlProtocol;
         _model.PropertyChanged += (_, e) =>
         {
             if (IsLoaded && e.PropertyName is nameof(MainViewModel.MotionEnabled) or nameof(MainViewModel.HighContrast) or nameof(MainViewModel.AlwaysOnTop)) ApplyAppearance();
@@ -75,6 +78,7 @@ public partial class MainWindow : Window
         try
         {
             if (_preview is null) { WindowPlacement.Dock(this); CreateTray(); }
+            if(_preview is null && _uiReport is null)StartControl();
             if(_startHidden) { Hide(); Opacity=1; }
             if(_preview is null && _uiReport is null)
             {
@@ -403,6 +407,7 @@ public partial class MainWindow : Window
     {
         if (_preview is null && !_exitRequested) { e.Cancel = true; Hide(); return; }
         _closed = true;
+        _controlTimer?.Stop(); _controlPipe?.Dispose();
         _backdropRequest?.Abort();
         _catalog.Dispose();
         _receiver.Dispose();

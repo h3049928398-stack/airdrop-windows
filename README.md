@@ -38,3 +38,7 @@ GUI要求.NET 10 SDK；原生层要求 Visual Studio C++/CMake/Ninja、Git。恢
 当前运行版已迁至同级工作区runtime/AirDrop；源码仍保留本目录。旧DropBridge参考资料集中在../archive/DropBridge，不能用于本程序构建或运行。统一入口为根Build-AirDrop.ps1及启动AirDrop.cmd，详情见../docs/DIRECTORY_LAYOUT.md。
 
 GUI build.ps1、tools/Build-Native.ps1、tools/Package-Engine.ps1支持-OutputDirectory指定运行输出目录；工作区构建入口会指定../runtime/AirDrop。单独复制本源码工程时，不传参数仍默认输出本目录dist/AirDrop；无旧项目依赖。
+
+## Wisland扩展
+
+已安装到D:/AI/wisland的“控制→隔空投送”，可通过手机式子窗口关闭/开启10分钟接收，并逐次同意iPhone请求。真实GIF接收已通过，新入口复用本程序单实例宿主；不复制另一套无线后端。安装源码、恢复办法与本机验证见[integrations/wisland](integrations/wisland/README.md)。

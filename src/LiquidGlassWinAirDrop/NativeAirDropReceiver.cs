@@ -29,6 +29,7 @@ public sealed class NativeAirDropReceiver : IAirDropReceiver, IDisposable
     public event Action<string>? StateChanged;
     public event Action<ReceiveRequest>? RequestReceived;
     public event Action? FilesReceived;
+    public event Action<string>? ProtocolMessage;
     public NativeAirDropReceiver(string? root = null)
     {
         _root = root ?? AppContext.BaseDirectory;
@@ -104,6 +105,7 @@ public sealed class NativeAirDropReceiver : IAirDropReceiver, IDisposable
         if(!line.StartsWith('{'))return;
         using var document=JsonDocument.Parse(line);
         var root=document.RootElement;
+        ProtocolMessage?.Invoke(line);
         switch(root.GetProperty("event").GetString())
         {
             case "incoming_request":
