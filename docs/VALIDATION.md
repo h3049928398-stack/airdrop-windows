@@ -132,3 +132,11 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - 已按六项安装文件哈希核对/逐文件备份更新D:/AI/wisland，备份data/extension-backups/airdrop-20261116-142022。配置、模型、密钥、接收文件及AirDrop后端不改，重启仅针对wisland界面。
 - 实际运行报告artifacts/wisland-buttons-native-20261116.json：buttonsUnified=true、buttonCount=6、buttonTextFits=true；isWindow/nativeChild均false，sharesIslandWindow、parentIsIslandContent、cardInsidePage、blurCoversPage/Surface、opaqueBlur、navBlurVisible、navSharesWindow均true。六处均实例化同一控件；实际关闭接收状态可见四处按钮，请求确认两处由上述虚构请求布局验证，不冒充新的手机请求。
 - 已查看同名PNG应用自身渲染，确认可见按钮均为同一玻璃胶囊材质、文字无裁切、方形默认底色消除；原连续背景模糊仍保留。实际窗口图保留本地不提交。wisland日志仍为13:47:08、373003B，无本轮新增异常。没有重复真实iPhone传输或更改无线行为。
+
+## 2026-11-16：Wi-Fi造型和连接图标比例
+
+用户指出此前替换的Wi-Fi不好看、图标偏大。Wi-Fi改为两条同心圆弧和圆角扇形底部，仍为原创矢量，未提取Apple图标。三种连接磁贴底座40→32逻辑像素（缩小20%），内部图形矩形24→18（缩小25%）；详情标题圆形底座同为32，含留边控件42→34，展开中的占位图标同步。点击区域及无线动作保留。
+
+- 沿用现有24项Qt检查通过，日志artifacts/wisland-icons-check.log，没有为可逆的绘制变化新增模拟实现的单元测试。已重新渲染并查看控制页artifacts/wisland-controls.png、浅色详情及实际应用深色详情，确认Wi-Fi轮廓和缩小后的比例；控制页示例中的启用状态为布局fixture。
+- 六项已知安装文件哈希核对/备份后更新D:/AI/wisland，备份data/extension-backups/airdrop-20261116-143138。源码和安装文件保持一致，未改驱动/后端/配置或接收数据。
+- 实际应用报告artifacts/wisland-icons-native-20261116.json及同名PNG确认标题图标缩小后的详情正常渲染；isWindow/nativeChild均false，同一island.content、卡片边界、连续模糊覆盖、导航、六按钮统一及文字完整条件保持通过。实际图保留本地不提交；wisland日志仍13:47:08、373003B，无新增异常。本轮没有手机传输验收。

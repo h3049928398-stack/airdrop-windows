@@ -5,6 +5,8 @@ from .widgets import Hoverable, painter
 
 Qt = QtCore.Qt
 BLUE = QtGui.QColor('#0a9fff')
+BADGE_SIZE = 32
+GLYPH_SIZE = 18
 
 
 def draw_symbol(p, kind, rect, color=QtGui.QColor('white')):
@@ -18,12 +20,17 @@ def draw_symbol(p, kind, rect, color=QtGui.QColor('white')):
         p.setPen(Qt.PenStyle.NoPen); p.setBrush(color)
         p.drawEllipse(QtCore.QPointF(0, 0), 1.5, 1.5)
     elif kind == 'wifi':
-        for y, span in ((-6, 19), (-1.6, 12.4), (2.5, 5.8)):
-            path = QtGui.QPainterPath(QtCore.QPointF(-span / 2, y))
-            path.quadTo(0, y - span * .48, span / 2, y)
-            p.drawPath(path)
+        # Two concentric circular bands and a rounded fan-shaped base keep the
+        # familiar Wi-Fi silhouette at small sizes; no extra third thin arch.
+        p.setPen(QtGui.QPen(color, 2.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        for radius in (11, 7):
+            p.drawArc(QtCore.QRectF(-radius, 4.8 - radius, radius * 2, radius * 2), 45 * 16, 90 * 16)
         p.setBrush(color); p.setPen(Qt.PenStyle.NoPen)
-        p.drawEllipse(QtCore.QPointF(0, 7), 1.7, 1.7)
+        base = QtGui.QPainterPath(QtCore.QPointF(-2.1, 3.9))
+        base.quadTo(0, 2.1, 2.1, 3.9); base.quadTo(2.4, 4.2, 2, 4.7)
+        base.lineTo(.65, 6.2); base.quadTo(0, 6.9, -.65, 6.2)
+        base.lineTo(-2, 4.7); base.quadTo(-2.4, 4.2, -2.1, 3.9); base.closeSubpath()
+        p.drawPath(base)
     elif kind == 'bt':
         path = QtGui.QPainterPath(QtCore.QPointF(0, -10)); path.lineTo(0, 10)
         path.moveTo(-6, -5); path.lineTo(6, 5); path.lineTo(0, 10)
@@ -156,13 +163,15 @@ class ConnectionTile(Hoverable):
         scale = self.press_scale()
         p.translate(rect.center()); p.scale(scale, scale); p.translate(-rect.center())
         glass_surface(p, self, rect, 27 if not self.compact else 30, self.island)
-        circle = QtCore.QRectF(14, 12 if not self.compact else 11, 40, 40)
+        circle = QtCore.QRectF(16, 14 if not self.compact else (self.height() - BADGE_SIZE) / 2,
+                              BADGE_SIZE, BADGE_SIZE)
         p.setPen(Qt.PenStyle.NoPen)
         off_circle = QtGui.QColor(255, 255, 255, 48) if theme.dark else QtGui.QColor(105, 112, 124, 175)
         p.setBrush(BLUE if self.on else off_circle)
         p.drawEllipse(circle)
-        draw_symbol(p, self.kind, circle.adjusted(8, 8, -8, -8))
-        x, y = (65, 10) if self.compact else (16, 69)
+        inset = (BADGE_SIZE - GLYPH_SIZE) / 2
+        draw_symbol(p, self.kind, circle.adjusted(inset, inset, -inset, -inset))
+        x, y = (61, 10) if self.compact else (16, 69)
         width = self.width() - x - 13
         p.setFont(ui_font(13, W.DemiBold)); p.setPen(theme.text())
         p.drawText(QtCore.QRectF(x, y, width, 20), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self.title)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from .theme import theme, ui_font, W
-from .control_skin import BLUE, draw_symbol, glass_surface, GlassButton
+from .control_skin import BLUE, BADGE_SIZE, GLYPH_SIZE, draw_symbol, glass_surface, GlassButton
 from .backdrop_filter import blur_frame, composite_widget
 
 Qt = QtCore.Qt
@@ -11,12 +11,13 @@ Qt = QtCore.Qt
 class AirDropSymbol(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setFixedSize(42, 42)
+        self.setFixedSize(BADGE_SIZE + 2, BADGE_SIZE + 2)
     def paintEvent(self, event):
         p = QtGui.QPainter(self); p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         p.setPen(Qt.PenStyle.NoPen); p.setBrush(BLUE)
         p.drawEllipse(QtCore.QRectF(self.rect()).adjusted(1, 1, -1, -1))
-        draw_symbol(p, 'airdrop', QtCore.QRectF(10, 10, 22, 22))
+        inset = (self.width() - GLYPH_SIZE) / 2
+        draw_symbol(p, 'airdrop', QtCore.QRectF(inset, inset, GLYPH_SIZE, GLYPH_SIZE))
 
 
 class GlassCard(QtWidgets.QWidget):
@@ -30,9 +31,10 @@ class GlassCard(QtWidgets.QWidget):
                       (self.overlay._blurred, self.pos(), self.overlay.size())
                       if not self.overlay._blurred.isNull() else None)
         if not self.overlay.body.isVisible():
-            circle = QtCore.QRectF(15, 15, 38, 38)
+            circle = QtCore.QRectF(17, 17, BADGE_SIZE, BADGE_SIZE)
             p.setPen(Qt.PenStyle.NoPen); p.setBrush(BLUE); p.drawEllipse(circle)
-            draw_symbol(p, 'airdrop', circle.adjusted(9, 9, -9, -9))
+            inset = (BADGE_SIZE - GLYPH_SIZE) / 2
+            draw_symbol(p, 'airdrop', circle.adjusted(inset, inset, -inset, -inset))
 
 
 class AirDropPanel(QtWidgets.QWidget):
