@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import datetime
+import importlib.util
 
 BASE = Path(__file__).resolve().parent
 ORIGINAL_SYSTEM_SHA256 = '2920592a75af1471c7b3c49c88f36a5a27a0d387e0130c3da53c846780b7b368'
@@ -23,18 +24,29 @@ def system_source(original: bytes) -> bytes:
         ('        self._radio = {}\n', '''        # Local AirDrop extension (original sources in AirDrop-Windows).
         from ...services.airdrop import AirDropService
         from ..airdrop import AirDropPanel
+        from ...services.connectivity import ConnectivityService
+        from ..connections import RadioPanel
         self.airdrop_service = AirDropService(self)
         self.airdrop_panel = AirDropPanel(self.airdrop_service, self)
+        self.connection_service = ConnectivityService(self)
+        self.wifi_panel = RadioPanel(self.connection_service, self, "wifi")
+        self.bt_panel = RadioPanel(self.connection_service, self, "bt")
         self.airdrop = ConnectionTile("airdrop", "隔空投送")
         self.airdrop.setAccessibleName("隔空投送")
         self.airdrop.clicked.connect(self._open_airdrop)
         self.airdrop_service.changed.connect(self._airdrop_state)
         if "--airdrop" in QtCore.QCoreApplication.arguments():
             QtCore.QTimer.singleShot(600, self._open_airdrop)
+        for option, kind in (("--wifi", "wifi"), ("--bluetooth", "bt")):
+            if option in QtCore.QCoreApplication.arguments():
+                QtCore.QTimer.singleShot(600, lambda kind=kind: self._open_radio(kind))
         for argument in QtCore.QCoreApplication.arguments():
             if argument.startswith("--airdrop-layout-report="):
                 path = argument.split("=", 1)[1]
                 QtCore.QTimer.singleShot(3000, lambda path=path: self.airdrop_panel.write_layout_report(path))
+            elif argument.startswith("--connection-layout-report="):
+                path = argument.split("=", 1)[1]
+                QtCore.QTimer.singleShot(3500, lambda path=path: (getattr(self, '_connection_layer', None) or self.airdrop_panel).write_layout_report(path))
         self._radio = {}
 '''),
         ('        for i, t in enumerate((self.wifi, self.bt, self.proxy, self.tun)):\n            grid.addWidget(t, i // 2, i % 2)\n', '''        grid.addWidget(self.wifi, 0, 0)
@@ -44,11 +56,21 @@ def system_source(original: bytes) -> bytes:
         grid.addWidget(self.tun, 2, 1)
 '''),
         ('vbox(None, gw, None)', 'vbox(gw, None)'),
+        ('self.wifi.clicked.connect(lambda: self._toggle("wifi"))', 'self.wifi.clicked.connect(lambda: self._open_radio("wifi"))'),
+        ('self.bt.clicked.connect(lambda: self._toggle("bt"))', 'self.bt.clicked.connect(lambda: self._open_radio("bt"))'),
         ('    def _toggle(self, kind: str):\n', '''    def _open_airdrop(self):
         for tile in (self.wifi, self.bt, self.airdrop):
             tile.island = self.island
         self.airdrop_panel.present()
         self.airdrop_service.connect_backend()
+
+    def _open_radio(self, kind):
+        for tile in (self.wifi, self.bt, self.airdrop):
+            tile.island = self.island
+        (self.wifi_panel if kind == "wifi" else self.bt_panel).present()
+        radio = getattr(self.ctx, "radio", None)
+        if radio is not None:
+            radio.refresh()
 
     def _airdrop_state(self, state):
         on = state.get("isRunning", False)
@@ -60,13 +82,16 @@ def system_source(original: bytes) -> bytes:
 '''),
         ('        ok = d.get("ok")\n', '''        ok = d.get("ok")
         height = 280 if ok else 220
-        if self.airdrop_panel.isVisible():
-            self.airdrop_panel._height_before = height
+        layer = getattr(self, '_connection_layer', None)
+        if layer is not None and layer._height_before is not None:
+            layer._height_before = height
         else:
             self.set_height(height)
 '''),
         ('    def on_show(self):\n        super().on_show()\n        self.ctx.brightness.refresh()', '''    def on_hide(self):
         self.airdrop_panel.close(immediate=True)
+        self.wifi_panel.close(immediate=True)
+        self.bt_panel.close(immediate=True)
         super().on_hide()
 
     def on_show(self):
@@ -78,6 +103,8 @@ def system_source(original: bytes) -> bytes:
             self.island.backdrop.ready.connect(self.wifi.update)
             self.island.backdrop.ready.connect(self.bt.update)
             self.island.backdrop.ready.connect(self.airdrop_panel.refresh_backdrop)
+            self.island.backdrop.ready.connect(self.wifi_panel.refresh_backdrop)
+            self.island.backdrop.ready.connect(self.bt_panel.refresh_backdrop)
             self._glass_hooked = True
         self.ctx.brightness.refresh()'''),
         ('        self.ctx.radio.refresh()\n', '        self.ctx.radio.refresh()\n        self.airdrop_service.refresh()\n'),
@@ -93,6 +120,8 @@ def install(target: Path):
     target = target.resolve()
     if not (target / 'wisland' / 'ui' / 'pages' / 'system.py').is_file():
         raise RuntimeError('目标不是 wisland 安装目录。')
+    if importlib.util.find_spec('winrt.windows.devices.enumeration') is None:
+        raise RuntimeError('请先使用 wisland 的 Python 安装 requirements-extension.txt 中的依赖。')
     system = target / 'wisland/ui/pages/system.py'
     current = system.read_bytes()
     current_manifest = None
@@ -114,6 +143,9 @@ def install(target: Path):
         target / 'wisland/ui/airdrop.py': (BASE / 'payload/ui/airdrop.py').read_bytes(),
         target / 'wisland/ui/control_skin.py': (BASE / 'payload/ui/control_skin.py').read_bytes(),
         target / 'wisland/ui/backdrop_filter.py': (BASE / 'payload/ui/backdrop_filter.py').read_bytes(),
+        target / 'wisland/ui/detail_layer.py': (BASE / 'payload/ui/detail_layer.py').read_bytes(),
+        target / 'wisland/ui/connections.py': (BASE / 'payload/ui/connections.py').read_bytes(),
+        target / 'wisland/services/connectivity.py': (BASE / 'payload/services/connectivity.py').read_bytes(),
         target / 'docs/AIRDROP_EXTENSION.md': (BASE / 'README.md').read_bytes(),
     }
     for path in desired:

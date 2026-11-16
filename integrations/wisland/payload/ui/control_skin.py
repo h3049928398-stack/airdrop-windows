@@ -20,11 +20,10 @@ def draw_symbol(p, kind, rect, color=QtGui.QColor('white')):
         p.setPen(Qt.PenStyle.NoPen); p.setBrush(color)
         p.drawEllipse(QtCore.QPointF(0, 0), 1.5, 1.5)
     elif kind == 'wifi':
-        # Two concentric circular bands and a rounded fan-shaped base keep the
-        # familiar Wi-Fi silhouette at small sizes; no extra third thin arch.
-        p.setPen(QtGui.QPen(color, 2.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        for radius in (11, 7):
-            p.drawArc(QtCore.QRectF(-radius, 4.8 - radius, radius * 2, radius * 2), 45 * 16, 90 * 16)
+        # Three concentric arcs, as requested; retain the compact 18px glyph.
+        p.setPen(QtGui.QPen(color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        for radius in (12, 8.5, 5):
+            p.drawArc(QtCore.QRectF(-radius, 6 - radius, radius * 2, radius * 2), 45 * 16, 90 * 16)
         p.setBrush(color); p.setPen(Qt.PenStyle.NoPen)
         base = QtGui.QPainterPath(QtCore.QPointF(-2.1, 3.9))
         base.quadTo(0, 2.1, 2.1, 3.9); base.quadTo(2.4, 4.2, 2, 4.7)
@@ -132,7 +131,7 @@ class GlassButton(QtWidgets.QAbstractButton):
             p.drawRoundedRect(rect.adjusted(2, 2, -2, -2), rect.height() / 2 - 2, rect.height() / 2 - 2)
         p.setFont(self.font()); p.setPen(QtGui.QColor('white') if active else theme.text())
         align = Qt.AlignmentFlag.AlignVCenter | (Qt.AlignmentFlag.AlignLeft if self.choice else Qt.AlignmentFlag.AlignHCenter)
-        p.drawText(self.text_rect(), align, self.text())
+        self.draw_label(p, align)
         if self.choice and self.isChecked():
             p.setPen(QtGui.QPen(QtGui.QColor('white'), 1.8, Qt.PenStyle.SolidLine,
                                Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
@@ -140,6 +139,9 @@ class GlassButton(QtWidgets.QAbstractButton):
             path = QtGui.QPainterPath(QtCore.QPointF(x - 4, y))
             path.lineTo(x - 1, y + 3); path.lineTo(x + 5, y - 4)
             p.drawPath(path)
+
+    def draw_label(self, painter, alignment):
+        painter.drawText(self.text_rect(), alignment, self.text())
 
 
 class ConnectionTile(Hoverable):

@@ -35,3 +35,9 @@
 ### 所有详情按钮统一
 
 收起、关闭/所有人、拒绝/接收及文件夹入口六处现统一使用control_skin.GlassButton（QAbstractButton）自绘胶囊玻璃，不依赖QPushButton/QSS；各尺寸共用圆角、字体、边缘高光和交互/禁用状态。模式互斥且有勾号，主要操作蓝色。24项Qt检查及实际窗口buttonsUnified/buttonTextFits通过，已部署；请求状态两按钮用虚构请求截图验证，此轮无新手机传输。恢复备份位置及完整证据见VALIDATION。
+
+### Wi-Fi与蓝牙详情
+
+两种磁贴也已改成内部展开，开关在详情中；Wi-Fi三弧恢复且保留紧凑尺寸。共享动画/模糊/生命周期移到detail_layer.py，三层互斥，来件可转AirDrop确认。新增services/connectivity.py和ui/connections.py，九项安全安装清单；PyWinRT Enumeration 3.2.1依赖见requirements-extension.txt，MIT已核对。
+
+Wi-Fi列表、显式连接/断开与临时个人网络密码表单已实现；新WPA3/企业配置走系统设置。蓝牙显示真实已配对设备/状态，连接/断开/配对走系统设置。密码不进CLI/日志，收起/切层清空；原生调用用20秒有界隐藏进程。34项软件检查、只读1个已连接Wi-Fi/7个已配对蓝牙以及两种实际原窗口渲染通过；真实切网、蓝牙连接/电源操作未执行。实际记录、限制和备份150448见VALIDATION。

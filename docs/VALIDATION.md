@@ -140,3 +140,15 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - 沿用现有24项Qt检查通过，日志artifacts/wisland-icons-check.log，没有为可逆的绘制变化新增模拟实现的单元测试。已重新渲染并查看控制页artifacts/wisland-controls.png、浅色详情及实际应用深色详情，确认Wi-Fi轮廓和缩小后的比例；控制页示例中的启用状态为布局fixture。
 - 六项已知安装文件哈希核对/备份后更新D:/AI/wisland，备份data/extension-backups/airdrop-20261116-143138。源码和安装文件保持一致，未改驱动/后端/配置或接收数据。
 - 实际应用报告artifacts/wisland-icons-native-20261116.json及同名PNG确认标题图标缩小后的详情正常渲染；isWindow/nativeChild均false，同一island.content、卡片边界、连续模糊覆盖、导航、六按钮统一及文字完整条件保持通过。实际图保留本地不提交；wisland日志仍13:47:08、373003B，无新增异常。本轮没有手机传输验收。
+
+## 2026-11-16：Wi-Fi和蓝牙内部详情
+
+点击Wi-Fi/蓝牙磁贴现为原窗口内部展开，开关移入详情；与AirDrop共用detail_layer.DetailLayer的玻璃、全内容模糊、260ms动画和高度/焦点/锁清理。同时只打开一个层，AirDrop请求可切到接收确认，不执行stop。Wi-Fi按用户要求恢复三条同心弧，保留32/18紧凑尺寸。
+
+- 软件：原24项Qt检查通过（artifacts/wisland-connections-check.log）；新增10项通过（wisland-radio-check.log）。覆盖三层互斥/来件切换、明暗/密码布局、清密码与显式操作、权限/系统管理入口、WLAN ABI、临时XML转义与认证限制、工作进程20秒界限/密码不进入命令行、失效选择拒绝、异步请求不直接标成连接成功。明暗Wi-Fi/蓝牙及密码表单样例PNG使用fixture，分别已查看。
+- 实现：原创ctypes调用系统wlanapi读取缓存，显式刷新才WlanScan；已保存配置、WPA/WPA2个人网络临时配置和开放网络支持WlanConnect，已连接网络需再点“断开连接”。新WPA3/企业认证转系统无线设置。连接请求接受后继续查真实状态，20秒仍未完成则提示，不伪造成功。密码输入遮挡，取消/收起/切层清空，经stdin传递，不写扩展文件、日志或命令行。
+- 蓝牙：新增PyWinRT Windows.Devices.Enumeration 3.2.1（MIT，与已有runtime等3.2.1一致）；读取已配对经典/低功耗设备，正确解包IsConnected及地址并去重；未知状态单独标注。连接、断开及配对通过系统蓝牙设置完成，本轮没有实现通用蓝牙音频/HID连接控制，不把列出设备称为已连上。
+- 真实只读：最终artifacts/wisland-connectivity-probe-unboxed.local.json记录1个已连接Wi-Fi、7个已配对蓝牙、0个已连接蓝牙，两个查询均无错误。没有扫描、切换网络、断开设备或改变开关。第一次受限原生诊断未返回，终止自己的诊断后加入有时限隐藏子进程隔离；后续定位并修复PyWinRT具名重载和装箱对象不能JSON序列化的问题。此前失败probe与最终结果分别留本地，不删除运行原始日志。
+- 部署：安装器先核对九项既有/新增文件，备份data/extension-backups/airdrop-20261116-150448；原六项逐文件previous备份，新增三模块有created标志。原配置、模型、用户密钥、接收文件与AirDrop后台不改。原WLAN/蓝牙电源服务沿用，只在用户点详情电源时调用。
+- 实际应用：wisland-wifi-native-20261116.json和wisland-bluetooth-native-20261116.json均isVisible=true、isWindow=false、nativeChild=false、sharesIslandWindow/parentIsIslandContent/cardInsidePage/sameWindowTiles/animationStopped均true；blurCoversPage/Surface、opaqueBlur、navBlurVisible/navSharesWindow、buttonsUnified、buttonTextFits均true。页面616×381，卡片[320,62,300,365]。
+- 已查看两种实际自身PNG：Wi-Fi显示真实当前连接，蓝牙显示已配对列表及未连接状态、可滚动；两层均在原窗口内，前景清晰、玻璃和连续背景模糊保留。实际SSID/设备名和报告只留本地不提交；新增布局截图仅含虚构数据。运行日志仍13:47:08、373003B，无本轮新增异常。未执行真实Wi-Fi切换、蓝牙连接/配对、电源切换或新的iPhone传输，因此不以UI/只读检查替代这些验收。

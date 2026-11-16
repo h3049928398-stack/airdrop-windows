@@ -36,3 +36,7 @@
 | Microsoft .NET/WPF/WinForms、VC运行库 | GUI与本机C++运行时 | Microsoft相应运行库许可；非本工程MIT声明范围 |
 
 Package-Engine将上游许可原文、版本锁与本说明放到backend/licenses。完整对应源码在固定上游checkout与本工程native/backend/tools；没有向外发布仅含二进制的包。对外再分发前须补齐GPL/LGPL对应源码义务、Realtek固件再分发依据、微软运行库分发条款和签名，不将本机研究包称为可公开发行产品。没有采用OpenDrop或DropBridge的协议整合代码。
+
+## Wisland连接详情新增依赖（2026-11-16）
+
+独立PyWinRT项目的winrt-Windows.Devices.Enumeration 3.2.1用于读取已配对经典/低功耗蓝牙设备；安装包METADATA License-Expression=MIT，使用原wisland已有winrt-runtime/Bluetooth/Foundation 3.2.1环境，不复制其代码到本扩展。版本固定在integrations/wisland/requirements-extension.txt；项目来源https://github.com/pywinrt/pywinrt。Python、PySide6及wisland原有组件继续使用安装目录既有许可。Wi-Fi ctypes包装为本工程原创，调用Windows自带wlanapi，不新增无线驱动或第三方网络程序。
