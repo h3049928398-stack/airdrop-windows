@@ -21,3 +21,9 @@
 新增integrations/wisland（MIT原创扩展及上游许可副本）。本机D:/AI/wisland控制页有隔空投送磁贴和独立子窗口；同用户命名管道控制runtime/AirDrop单实例，宿主计时10分钟，默认不自动广播，用户选择“所有人”才启动接收。详细安装、备份/恢复、协议和真机验证见该目录README及VALIDATION。
 
 新子窗口已完成一次真实iPhone GIF接收（10,092,594B/7.993s），以及状态刷新修复；不要只看早期README中的单张图片或BLE未Started历史结论。wisland安装目录没有Git，扩展代码在本工程版本化；不要提交它的config.json、API Key、模型或用户文件。
+
+## 2026-11-16：Wisland内部详情层（取代前版独立Dialog）
+
+根据用户iPhone控制中心截图，AirDrop已改成控制磁贴原位展开的内部Qt.Widget，共享wisland唯一原窗口和玻璃背景。连接图标已统一为原创白线矢量，无线/AirDrop方卡与蓝牙横卡。15项界面检查及真实应用几何报告通过，无新增手机传输验收；此前11月15日协议/真机记录仍保留。
+
+升级安装器支持现有清单哈希核对和previous逐文件备份，不修改AirDrop后端或用户配置。详情与恢复办法见integrations/wisland/README.md。

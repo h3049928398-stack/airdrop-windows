@@ -17,3 +17,4 @@
 | L08 | 设置中的开机自启动 | 完成：默认关闭、保存后写入当前用户Run项；--startup隐藏到托盘，不自动开始无线接收。隔离注册表5项、隐藏启动/托盘恢复10项、17项基础及8项常规UI通过；实际重启/登录未验收。2026-11-14，VALIDATION.md |
 | L09 | 源码/运行/研究归档分区 | 完成：源码与编译依赖保持原位；运行移至../runtime/AirDrop，89文件大小/SHA256一致；旧参考项目与UI预览归档。构建支持OutputDirectory，根入口指定唯一运行目录。迁移后17基础和6协议检查通过，运行状态恢复；详见工作区docs/DIRECTORY_LAYOUT.md |
 | L10 | Wisland隔空投送控制与子窗口 | 完成：已部署至D:/AI/wisland，哈希核对+原控制页备份；同用户命名管道连接现有宿主，关闭/所有人10分钟、逐次确认、进度及完成。17基础、10Qt、4真实IPC检查通过；真实十分钟到期后界面/后台均关闭；新子窗口真实iPhone接收10,092,594B GIF成功（7.993s约1.263MB/s），文件大小/解码通过，本地哈希已记。详情integrations/wisland/README.md及VALIDATION.md |
+| L11 | iPhone式内部展开与连接图标统一 | 完成：AirDrop从磁贴展开为ControlsPage内Qt.Widget；不再创建Dialog/额外原生窗口，共享玻璃背景。统一无线/蓝牙/AirDrop矢量白线图标；外点/Esc/切页收回、收起期新请求与高度/锁清理。15项Qt检查及实际应用同窗口/无原生子窗/边界报告通过；沿用原接收链，本轮无新增手机传输。见integrations/wisland/README.md |

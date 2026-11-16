@@ -41,4 +41,4 @@ GUI build.ps1、tools/Build-Native.ps1、tools/Package-Engine.ps1支持-OutputDi
 
 ## Wisland扩展
 
-已安装到D:/AI/wisland的“控制→隔空投送”，可通过手机式子窗口关闭/开启10分钟接收，并逐次同意iPhone请求。真实GIF接收已通过，新入口复用本程序单实例宿主；不复制另一套无线后端。安装源码、恢复办法与本机验证见[integrations/wisland](integrations/wisland/README.md)。
+已安装到D:/AI/wisland的“控制→隔空投送”，可通过控制磁贴内部展开的详情层关闭/开启10分钟接收，并逐次同意iPhone请求。真实GIF接收已通过，新入口复用本程序单实例宿主；不复制另一套无线后端。安装源码、恢复办法与本机验证见[integrations/wisland](integrations/wisland/README.md)。

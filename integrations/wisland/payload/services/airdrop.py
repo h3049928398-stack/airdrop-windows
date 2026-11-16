@@ -169,7 +169,7 @@ class AirDropService(QtCore.QObject):
     def _error(self, error):
         if self._stopped:
             return
-        message = '接收程序未连接，点击此窗口重试' if isinstance(error, OSError) else str(error)
+        message = '接收程序未连接，请重新点击隔空投送磁贴' if isinstance(error, OSError) else str(error)
         self.state = {'ok': False, 'isRunning': False, 'isStarting': False, 'message': message, 'requests': []}
         self._known.clear()
         self.changed.emit(dict(self.state))

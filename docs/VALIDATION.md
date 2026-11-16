@@ -99,3 +99,15 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 ### Wisland十分钟自动停止实测
 
 2026-11-15 14:14:02从真实子窗口选择所有人10分钟，14:24:02.9032178日志radio_stopped；管道isRunning=false/remainingSeconds=null/phase=idle，实际子窗口文本“接收已关闭”。仅剩AirDrop宿主进程，无Radio/AWDL/Network/Python接收进程。截止时间跨wisland重启仍保持，由宿主执行；实际等待完整10分钟，未调整系统时钟或生产计时参数。
+
+## 2026-11-16：Wisland控制页内部详情层与图标纠正
+
+用户指出上一版Dialog是独立窗口，并提供iPhone控制中心磁贴/蓝牙详情截图。本次按其意图将AirDrop改为ControlsPage内部Qt.Widget，复用灵动岛原窗口；三种连接控件使用统一原创白线矢量图标（无线弧线、Bluetooth符号、AirDrop三圈开放波纹与中心圆点）。未使用截图作资产，也未逆向软件，已有完整Python源代码。
+
+- 方形无线/AirDrop卡片、蓝牙横向卡片，共享原Backdrop缓存。详情层从选中磁贴几何260ms展开，页面高度随灵动岛伸展；点击外侧/收起/Esc回到磁贴。淡化背景取本应用页面快照，不新增桌面截图线程。关闭详情层不向宿主发送stop。
+- UI检查15项通过：原命令/确认/进度/专用通信线程回归及无新顶层窗口、同一window祖先、连续展开、父级隐藏清理、外点/Esc收回、收起期间新请求。保护了切页和关闭后的焦点/高度/锁，不覆盖原代理、音量、亮度等功能。
+- 部署前原五项安装文件哈希核对通过，安装器为原四项保留previous备份，新增control_skin.py；拒绝未知文件改动。用户配置、模型、密钥及收件目录未复制或重写；AirDrop后端未重新编译或修改，此轮不发起手机传输。
+- 实际wisland应用自检artifacts/wisland-embedded-native.json：isVisible=true，isWindow=false，nativeChild=false，sharesIslandWindow/parentIsControlPage/cardInsidePage/sameWindowTiles/animationStopped均true；页面616×316、卡片[308,8,300,300]。它是原控制页内部的子控件，没有Dialog或额外HWND。
+- 离屏布局截图artifacts/wisland-controls.png、wisland-controls-expanded.png、wisland-airdrop-light.png、wisland-airdrop-dark.png；蓝色启用等为布局fixture，不充当硬件/无线证据。自动测试完整日志wisland-embedded-check.log留本地。本轮未重复11月15日的真实传输验收。
+
+最终补充：升级安装器拒绝未知已有模块且不产生部分写入的检查通过，当前总计15项；最终本机报告为wisland-embedded-native-final.json，所有同窗口/边界条件通过。当前版本备份在wisland/data/extension-backups/airdrop-20261116-133945，按其中previous和manifest可恢复到升级前。
