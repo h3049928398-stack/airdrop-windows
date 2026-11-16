@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from .theme import theme, ui_font, W
-from .control_skin import BLUE, draw_symbol, glass_surface
+from .control_skin import BLUE, draw_symbol, glass_surface, GlassButton
 from .backdrop_filter import blur_frame, composite_widget
 
 Qt = QtCore.Qt
@@ -59,20 +59,21 @@ class AirDropPanel(QtWidgets.QWidget):
         titles.addWidget(self.label('隔空投送', 18, W.DemiBold))
         self.name = self.label('AirDrop', 11)
         titles.addWidget(self.name); header.addLayout(titles, 1)
-        self.close_button = QtWidgets.QPushButton('收起')
+        self.close_button = GlassButton('收起', height=32)
         self.close_button.setAccessibleName('收起隔空投送')
-        self.close_button.setFixedSize(40, 28)
+        self.close_button.setFixedWidth(60)
         self.close_button.clicked.connect(self.close)
         header.addWidget(self.close_button)
         layout.addLayout(header)
         self.status = self.label('正在连接…', 11)
         self.status.setWordWrap(True); self.status.setMaximumHeight(58)
         layout.addWidget(self.status)
-        self.off = QtWidgets.QPushButton('接收关闭')
-        self.everyone = QtWidgets.QPushButton('所有人，10 分钟')
+        self.off = GlassButton('接收关闭', height=44, choice=True)
+        self.everyone = GlassButton('所有人，10 分钟', height=44, choice=True)
+        self.choices = QtWidgets.QButtonGroup(self)
+        self.choices.setExclusive(True)
         for button in (self.off, self.everyone):
-            button.setMinimumHeight(43); button.setCheckable(True)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.choices.addButton(button)
             layout.addWidget(button)
         self.off.clicked.connect(lambda: self.service.command('stop'))
         self.everyone.clicked.connect(lambda: self.service.command('start'))
@@ -85,7 +86,7 @@ class AirDropPanel(QtWidgets.QWidget):
         self.request_text.setWordWrap(True); self.request_text.setMaximumHeight(100)
         request_layout.addWidget(self.request_text)
         actions = QtWidgets.QHBoxLayout()
-        self.decline = QtWidgets.QPushButton('拒绝'); self.accept = QtWidgets.QPushButton('接收')
+        self.decline = GlassButton('拒绝'); self.accept = GlassButton('接收', primary=True)
         self.decline.clicked.connect(lambda: self.respond(False))
         self.accept.clicked.connect(lambda: self.respond(True))
         actions.addWidget(self.decline); actions.addWidget(self.accept)
@@ -93,9 +94,10 @@ class AirDropPanel(QtWidgets.QWidget):
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 100); self.progress.setFixedHeight(6); self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
-        self.open_folder = QtWidgets.QPushButton('打开接收文件夹')
-        self.open_folder.setMinimumHeight(29); self.open_folder.clicked.connect(self.folder)
+        self.open_folder = GlassButton('打开接收文件夹', height=36)
+        self.open_folder.clicked.connect(self.folder)
         layout.addWidget(self.open_folder)
+        self.buttons = (self.close_button, self.off, self.everyone, self.decline, self.accept, self.open_folder)
         self.request_card.hide(); self.progress.hide()
         self._animation = QtCore.QVariantAnimation(self, duration=260)
         self._animation.setEasingCurve(QtCore.QEasingCurve.Type.OutCubic)
@@ -121,14 +123,11 @@ class AirDropPanel(QtWidgets.QWidget):
 
     def restyle(self):
         fg = theme.text().name()
-        row = 'rgba(255,255,255,22)' if theme.dark else 'rgba(255,255,255,120)'
         self.setStyleSheet(f'QLabel{{color:{fg};background:transparent}}'
-                           f'QPushButton{{color:{fg};background:{row};border:0;border-radius:15px;padding:6px 9px;font-size:12px;text-align:left}}'
-                           'QPushButton:checked{background:rgba(10,159,255,190);color:white}'
-                           'QPushButton:hover{border:1px solid rgba(255,255,255,100)}'
-                           'QPushButton:disabled{color:#888}'
                            'QProgressBar{background:rgba(128,128,128,40);border:0;border-radius:3px}'
                            'QProgressBar::chunk{background:#0a9fff;border-radius:3px}')
+        for button in self.buttons:
+            button.update()
         self.update(); self.card.update()
         self.refresh_backdrop()
 
@@ -332,6 +331,10 @@ class AirDropPanel(QtWidgets.QWidget):
                       navBlurVisible=bool(nav and nav.isVisible() and self.isVisible() and
                                           self.rect().contains(QtCore.QRect(nav.mapTo(self.parentWidget(), QtCore.QPoint()), nav.size()))),
                       navSharesWindow=bool(nav and nav.window() is self.window()),
+                      buttonsUnified=all(isinstance(button, GlassButton) for button in self.buttons),
+                      buttonCount=len(self.buttons),
+                      buttonTextFits=all(QtGui.QFontMetrics(button.font()).horizontalAdvance(button.text()) <= button.text_rect().width()
+                                         for button in self.buttons if button.isVisible()),
                       scope='application-owned geometry check; no control commands issued by this check')
         target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
         report['surfaceCaptureSaved'] = self.window().grab().save(str(target.with_suffix('.png')))

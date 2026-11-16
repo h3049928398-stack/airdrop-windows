@@ -21,6 +21,7 @@ wisland.ui.__path__.insert(0, str(BASE / 'payload/ui'))
 from wisland.services.airdrop import AirDropService
 from wisland.ui.airdrop import AirDropPanel
 from wisland.ui.backdrop_filter import blur_frame, composite_widget
+from wisland.ui.control_skin import GlassButton
 from wisland.ui.theme import theme
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
@@ -83,6 +84,58 @@ class ExtensionChecks(unittest.TestCase):
         self.panel.render({**self.service.state, 'requests': []})
         self.panel.respond(True)
         self.assertEqual(self.service.calls, [])
+    def test_detail_buttons_all_keep_capsule_corners_in_interaction_states(self):
+        self.assertEqual(len(self.panel.findChildren(QtWidgets.QAbstractButton)), 6)
+        self.assertEqual(self.panel.findChildren(QtWidgets.QPushButton), [])
+        self.service.state = {**self.service.state,
+                              'requests': [{'id': 'corners-only', 'sender': 'iPhone', 'files': ['photo.JPG']}]}
+        self.panel.present(); QtTest.QTest.qWait(330)
+        for button in self.panel.buttons:
+            self.assertIsInstance(button, GlassButton)
+            for mode in ('light', 'dark'):
+                theme.set_mode(mode)
+                for state in ('normal', 'hover', 'pressed', 'disabled'):
+                    button.setEnabled(state != 'disabled')
+                    button._hovered = state == 'hover'
+                    button.setDown(state == 'pressed')
+                    frame = QtGui.QImage(button.size(), QtGui.QImage.Format.Format_ARGB32_Premultiplied)
+                    frame.fill(QtCore.Qt.GlobalColor.transparent)
+                    p = QtGui.QPainter(frame)
+                    button.render(p, QtCore.QPoint(), QtGui.QRegion(), QtWidgets.QWidget.RenderFlag.DrawChildren)
+                    p.end()
+                    self.assertEqual(frame.pixelColor(0, 0).alpha(), 0, (button.text(), mode, state))
+                    self.assertEqual(frame.pixelColor(frame.width()-1, frame.height()-1).alpha(), 0, (button.text(), mode, state))
+                    self.assertGreater(frame.pixelColor(frame.width()//2, frame.height()//2).alpha(), 0)
+            button.setEnabled(True); button.setDown(False)
+    def test_button_keyboard_selection_is_exclusive_and_disabled_does_not_dispatch(self):
+        self.panel.present(); QtTest.QTest.qWait(330)
+        self.panel.everyone.setFocus()
+        for _ in range(2):
+            QtTest.QTest.keyClick(self.panel.everyone, QtCore.Qt.Key.Key_Space)
+            self.assertTrue(self.panel.everyone.isChecked())
+            self.assertFalse(self.panel.off.isChecked())
+        self.assertEqual(self.service.calls, [('start', {}), ('start', {})])
+        self.panel.off.setEnabled(False)
+        self.panel.off.click()
+        self.assertEqual(len(self.service.calls), 2)
+        self.panel.off.setEnabled(True); self.panel.off.click()
+        self.assertTrue(self.panel.off.isChecked()); self.assertFalse(self.panel.everyone.isChecked())
+        self.assertEqual(self.service.calls[-1], ('stop', {}))
+    def test_all_six_buttons_fit_in_pending_request_layout_and_both_themes(self):
+        self.service.state = {**self.service.state, 'isRunning': True, 'remainingSeconds': 599, 'message': '接收已开启',
+                              'receiveDirectory': 'D:/fixture/received',
+                              'requests': [{'id': 'layout-only', 'sender': 'iPhone', 'files': ['photo.JPG']}]}
+        for mode in ('light', 'dark'):
+            theme.set_mode(mode)
+            self.panel.present(); QtTest.QTest.qWait(450)
+            for button in self.panel.buttons:
+                self.assertTrue(button.isVisible(), button.text())
+                self.assertGreaterEqual(button.text_rect().width(),
+                                        QtGui.QFontMetrics(button.font()).horizontalAdvance(button.text()), button.text())
+                self.assertTrue(self.panel.card.rect().contains(QtCore.QRect(
+                    button.mapTo(self.panel.card, QtCore.QPoint()), button.size())), button.text())
+            self.page.grab().save(str(BASE.parents[1] / f'artifacts/wisland-buttons-{mode}.png'))
+            self.panel.close(immediate=True)
     def test_close_unlocks_island_without_stopping_receiving(self):
         self.panel.present(); app.processEvents()
         self.assertIn('airdrop', self.page.island.locks)

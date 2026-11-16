@@ -122,3 +122,13 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - 安装器六项哈希核对/逐文件备份通过，最终更新D:/AI/wisland；最新备份data/extension-backups/airdrop-20261116-140210，可按manifest及previous恢复。原配置、模型、接收目录与AirDrop后端不改。
 - 实际应用报告artifacts/wisland-blur-unified-native.json：isVisible=true、isWindow=false、nativeChild=false、sharesIslandWindow=true、parentIsIslandContent=true、sameWindowTiles=true、cardInsidePage=true、blurCoversPage=true、blurCoversSurface=true、opaqueBlur=true、navBlurVisible=true、navSharesWindow=true；页面616×316，卡片相对content为[320,62,300,300]。parentIsControlPage=false是为连同导航/留白一起模糊而将父控件移到原content，不是新窗口。
 - 已查看同名PNG的应用自身实际渲染，确认分块矩形接缝消除、整块背景连续柔化、详情保持清晰。该图可能包含原玻璃中的模糊桌面，留本地不提交；自动布局样例PNG仍独立保存。检查后wisland日志修改时间仍13:47:08，没有本轮新增异常。离屏/实际应用渲染不代替人眼交互或手机传输，本轮无新的iPhone传输验收。
+
+## 2026-11-16：详情六处按钮统一
+
+用户反馈按钮未全部统一。此前QPushButton依赖QSS，短小的“收起”与文件夹入口在实际运行中出现矩形背景；此前实际渲染还存在按钮文字边缘裁切。本次改为同一个GlassButton（QAbstractButton）自绘六处按钮，与详情卡片共用glass_surface高光/边缘，按高度绘制胶囊圆角，统一字体、文字留白及悬停/按下/禁用/焦点状态。接收模式采用互斥勾选，接收主操作保持蓝色，次要操作为中性玻璃。
+
+- Qt共24项通过，日志artifacts/wisland-buttons-check.log。新增：六按钮在两主题及正常/悬停/按下/禁用状态下的透明圆角；Space键互斥选择、点击已选所有人仍发start及禁用不发指令；虚构待接收请求下全部六处按钮可见、文字完整、布局在卡片内。原21项连续模糊/同窗口/收起/命令/进度等回归通过。
+- 查看了明暗布局样例artifacts/wisland-buttons-dark.png、wisland-buttons-light.png，含虚构iPhone/photo.JPG请求以核查接收/拒绝按钮；仅为UI证据。普通面板和控制页展开样例同步更新。
+- 已按六项安装文件哈希核对/逐文件备份更新D:/AI/wisland，备份data/extension-backups/airdrop-20261116-142022。配置、模型、密钥、接收文件及AirDrop后端不改，重启仅针对wisland界面。
+- 实际运行报告artifacts/wisland-buttons-native-20261116.json：buttonsUnified=true、buttonCount=6、buttonTextFits=true；isWindow/nativeChild均false，sharesIslandWindow、parentIsIslandContent、cardInsidePage、blurCoversPage/Surface、opaqueBlur、navBlurVisible、navSharesWindow均true。六处均实例化同一控件；实际关闭接收状态可见四处按钮，请求确认两处由上述虚构请求布局验证，不冒充新的手机请求。
+- 已查看同名PNG应用自身渲染，确认可见按钮均为同一玻璃胶囊材质、文字无裁切、方形默认底色消除；原连续背景模糊仍保留。实际窗口图保留本地不提交。wisland日志仍为13:47:08、373003B，无本轮新增异常。没有重复真实iPhone传输或更改无线行为。

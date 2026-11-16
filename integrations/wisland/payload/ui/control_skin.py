@@ -1,5 +1,5 @@
 """Original vector connectivity symbols and glass surfaces, shared by tile/detail."""
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 from .theme import theme, ui_font, W
 from .widgets import Hoverable, painter
 
@@ -32,7 +32,7 @@ def draw_symbol(p, kind, rect, color=QtGui.QColor('white')):
     p.restore()
 
 
-def glass_surface(p, widget, rect, radius, island=None, strength=1.0, background=None):
+def glass_surface(p, widget, rect, radius, island=None, strength=1.0, background=None, base_color=None):
     path = QtGui.QPainterPath(); path.addRoundedRect(rect, radius, radius)
     backdrop = getattr(island, 'backdrop', None)
     if background is not None:
@@ -44,7 +44,7 @@ def glass_surface(p, widget, rect, radius, island=None, strength=1.0, background
         brush = backdrop.brush_for(backdrop.state, widget.mapToGlobal(QtCore.QPoint()))
         if brush is not None:
             p.fillPath(path, brush)
-    tint = theme.tint()
+    tint = QtGui.QColor(base_color) if base_color is not None else theme.tint()
     tint.setAlpha(min(235, int(tint.alpha() * strength)))
     p.fillPath(path, tint)
     gloss = QtGui.QLinearGradient(rect.topLeft(), rect.bottomRight())
@@ -58,6 +58,81 @@ def glass_surface(p, widget, rect, radius, island=None, strength=1.0, background
     rim.setColorAt(1, QtGui.QColor(255, 255, 255, 90))
     p.strokePath(path, QtGui.QPen(QtGui.QColor(0, 0, 0, 45), 2))
     p.strokePath(path, QtGui.QPen(QtGui.QBrush(rim), 1))
+
+
+class GlassButton(QtWidgets.QAbstractButton):
+    """One glass capsule renderer with native button semantics, in every state."""
+    def __init__(self, text, parent=None, *, height=40, choice=False, primary=False):
+        super().__init__(parent)
+        self.choice, self.primary = choice, primary
+        self._hovered = False
+        self.setText(text); self.setFont(ui_font(12.5, W.Medium))
+        self.setFixedHeight(height)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
+        self.setCheckable(choice)
+        self.pressed.connect(self.update); self.released.connect(self.update)
+        self.toggled.connect(lambda _: self.update())
+        theme.changed.connect(self.update)
+
+    def sizeHint(self):
+        return QtCore.QSize(QtGui.QFontMetrics(self.font()).horizontalAdvance(self.text()) +
+                           (58 if self.choice else 32), self.minimumHeight())
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
+
+    def text_rect(self):
+        return QtCore.QRectF(self.rect()).adjusted(16, 1, -42 if self.choice else -16, -1)
+
+    def enterEvent(self, event):
+        self._hovered = True; self.update(); super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._hovered = False; self.update(); super().leaveEvent(event)
+
+    def focusInEvent(self, event):
+        self.update(); super().focusInEvent(event)
+
+    def focusOutEvent(self, event):
+        self.update(); super().focusOutEvent(event)
+
+    def changeEvent(self, event):
+        if event.type() == QtCore.QEvent.Type.EnabledChange:
+            self._hovered = False; self.update()
+        super().changeEvent(event)
+
+    def paintEvent(self, event):
+        p = painter(self)
+        rect = QtCore.QRectF(self.rect()).adjusted(1.5, 1.5, -1.5, -1.5)
+        if self.isDown() and self.isEnabled():
+            p.translate(rect.center()); p.scale(.985, .985); p.translate(-rect.center())
+        if not self.isEnabled():
+            p.setOpacity(.46)
+        active = self.isChecked() or self.primary
+        base = QtGui.QColor(BLUE) if active else theme.card()
+        if active:
+            base.setAlpha(225)
+        glass_surface(p, self, rect, rect.height() / 2, base_color=base)
+        if self._hovered and self.isEnabled():
+            p.setPen(Qt.PenStyle.NoPen); p.setBrush(QtGui.QColor(255, 255, 255, 20))
+            p.drawRoundedRect(rect, rect.height() / 2, rect.height() / 2)
+        if self.hasFocus() and self.isEnabled():
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 210) if theme.dark or active else BLUE, 1.4))
+            p.drawRoundedRect(rect.adjusted(2, 2, -2, -2), rect.height() / 2 - 2, rect.height() / 2 - 2)
+        p.setFont(self.font()); p.setPen(QtGui.QColor('white') if active else theme.text())
+        align = Qt.AlignmentFlag.AlignVCenter | (Qt.AlignmentFlag.AlignLeft if self.choice else Qt.AlignmentFlag.AlignHCenter)
+        p.drawText(self.text_rect(), align, self.text())
+        if self.choice and self.isChecked():
+            p.setPen(QtGui.QPen(QtGui.QColor('white'), 1.8, Qt.PenStyle.SolidLine,
+                               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+            x, y = self.width() - 24, self.height() / 2
+            path = QtGui.QPainterPath(QtCore.QPointF(x - 4, y))
+            path.lineTo(x - 1, y + 3); path.lineTo(x + 5, y - 4)
+            p.drawPath(path)
 
 
 class ConnectionTile(Hoverable):

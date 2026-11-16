@@ -31,3 +31,7 @@
 ### 后续背景模糊修正
 
 详情层现挂在同一原窗口的island.content内部，使导航、页面和留白可作为一张背景连续模糊；卡片仍以原磁贴定位，并按原灵动岛轮廓裁剪。新增backdrop_filter.py进行DPR感知的不透明合成/补边离屏模糊，不给实时控件添加effect；复用原Backdrop更新、160ms合并、收起清缓存。21项Qt检查、实际应用完整覆盖/同窗口报告和自身渲染核查通过，已更新D:/AI/wisland。证据及备份位置见VALIDATION本次补充；接收协议未改，此轮没有新手机传输记录。
+
+### 所有详情按钮统一
+
+收起、关闭/所有人、拒绝/接收及文件夹入口六处现统一使用control_skin.GlassButton（QAbstractButton）自绘胶囊玻璃，不依赖QPushButton/QSS；各尺寸共用圆角、字体、边缘高光和交互/禁用状态。模式互斥且有勾号，主要操作蓝色。24项Qt检查及实际窗口buttonsUnified/buttonTextFits通过，已部署；请求状态两按钮用虚构请求截图验证，此轮无新手机传输。恢复备份位置及完整证据见VALIDATION。

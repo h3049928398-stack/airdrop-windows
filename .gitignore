@@ -8,7 +8,7 @@ artifacts/*.jsonl
 artifacts/*.pcap
 artifacts/*.zip
 # Installed app captures can contain a blurred desktop; retain locally only.
-artifacts/wisland-blur*native*.png
+artifacts/wisland-*native*.png
 .vs/
 .build/
 artifacts/ui-check-data/
