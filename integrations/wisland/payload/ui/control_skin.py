@@ -32,10 +32,15 @@ def draw_symbol(p, kind, rect, color=QtGui.QColor('white')):
     p.restore()
 
 
-def glass_surface(p, widget, rect, radius, island=None, strength=1.0):
+def glass_surface(p, widget, rect, radius, island=None, strength=1.0, background=None):
     path = QtGui.QPainterPath(); path.addRoundedRect(rect, radius, radius)
     backdrop = getattr(island, 'backdrop', None)
-    if backdrop is not None:
+    if background is not None:
+        image, offset, extent = background
+        p.save(); p.setClipPath(path)
+        p.drawImage(QtCore.QRectF(-offset.x(), -offset.y(), extent.width(), extent.height()), image)
+        p.restore()
+    elif backdrop is not None:
         brush = backdrop.brush_for(backdrop.state, widget.mapToGlobal(QtCore.QPoint()))
         if brush is not None:
             p.fillPath(path, brush)

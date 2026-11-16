@@ -20,6 +20,7 @@ wisland.services.__path__.insert(0, str(BASE / 'payload/services'))
 wisland.ui.__path__.insert(0, str(BASE / 'payload/ui'))
 from wisland.services.airdrop import AirDropService
 from wisland.ui.airdrop import AirDropPanel
+from wisland.ui.backdrop_filter import blur_frame, composite_widget
 from wisland.ui.theme import theme
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
@@ -191,6 +192,98 @@ class ExtensionChecks(unittest.TestCase):
         self.assertTrue(self.panel.body.isVisible())
         self.assertFalse(self.panel.isWindow())
         self.assertEqual(self.service.calls, [])
+    def test_blur_preserves_dpr_and_uniform_edges(self):
+        for dpr in (1, 1.5, 2):
+            frame = QtGui.QImage(round(160 * dpr), round(100 * dpr), QtGui.QImage.Format.Format_RGB32)
+            frame.setDevicePixelRatio(dpr); frame.fill(QtGui.QColor('#fafafa'))
+            blurred = blur_frame(frame)
+            self.assertEqual(blurred.size(), frame.size())
+            self.assertEqual(blurred.devicePixelRatio(), dpr)
+            for x, y in ((0, 0), (blurred.width()-1, 0), (0, blurred.height()-1),
+                         (blurred.width()-1, blurred.height()-1), (blurred.width()//2, blurred.height()//2)):
+                color = blurred.pixelColor(x, y)
+                self.assertGreaterEqual(color.red(), 248)
+                self.assertGreaterEqual(color.alpha(), 254)
+    def test_blur_removes_sharp_pattern_without_affecting_live_widgets(self):
+        frame = QtGui.QImage(320, 180, QtGui.QImage.Format.Format_RGB32)
+        frame.fill(QtCore.Qt.GlobalColor.white)
+        p = QtGui.QPainter(frame)
+        for x in range(0, 320, 8): p.fillRect(x, 0, 4, 180, QtCore.Qt.GlobalColor.black)
+        p.end()
+        blurred = blur_frame(frame)
+        samples = [blurred.pixelColor(x, 90).red() for x in range(60, 260)]
+        self.assertLess(max(samples) - min(samples), 15)
+        self.panel.present(); QtTest.QTest.qWait(450)
+        for widget in (self.page, self.panel, self.panel.card, self.panel.body):
+            self.assertIsNone(widget.graphicsEffect())
+    def test_composite_and_overlay_prevent_sharp_content_bleeding_through(self):
+        self.page.setStyleSheet('#surface{background:transparent}')
+        background = QtWidgets.QLabel('Underlying sharp text', self.page)
+        background.setGeometry(8, 80, 270, 40)
+        background.setStyleSheet('color:white;font-size:23px')
+        background.show(); app.processEvents()
+        frame = composite_widget(self.page, self.page.island)
+        self.assertEqual(min(frame.pixelColor(x, y).alpha() for x, y in
+                             ((0, 0), (20, 90), (300, 100), (619, 219))), 255)
+        self.panel.present(); QtTest.QTest.qWait(450)
+        before = self.page.grab().toImage().copy(0, 50, 280, 100)
+        # Alter the still-live widget beneath a settled overlay. The image must
+        # not change until an explicit backdrop refresh supplies a new frame.
+        self.panel._capture_timer.stop()
+        background.setText('Completely different sharp text')
+        app.processEvents()
+        after = self.page.grab().toImage().copy(0, 50, 280, 100)
+        self.assertEqual(before, after)
+    def test_blur_recaptures_full_resized_page_and_releases_cache(self):
+        self.panel.present(); QtTest.QTest.qWait(450)
+        self.page.resize(690, 420); QtTest.QTest.qWait(210)
+        self.assertEqual(self.panel._blurred.deviceIndependentSize().toSize(), self.page.size())
+        self.assertEqual(self.panel.geometry(), self.page.rect())
+        self.panel.close(immediate=True)
+        self.assertTrue(self.panel._blurred.isNull())
+        self.assertTrue(self.panel._original.isNull())
+        self.assertFalse(self.panel._capture_timer.isActive())
+    def test_transparent_surface_keeps_glass_instead_of_palette_rectangle(self):
+        surface = QtWidgets.QWidget(); surface.resize(80, 60)
+        palette = surface.palette(); palette.setColor(QtGui.QPalette.ColorRole.Window, QtGui.QColor('magenta'))
+        surface.setPalette(palette)
+        backdrop = SimpleNamespace(state=None, brush_for=lambda *a: QtGui.QBrush(QtGui.QColor('#456789')))
+        image = composite_widget(surface, SimpleNamespace(backdrop=backdrop))
+        expected = QtGui.QImage(1, 1, QtGui.QImage.Format.Format_RGB32)
+        expected.fill(QtGui.QColor('#456789'))
+        p = QtGui.QPainter(expected)
+        p.fillRect(expected.rect(), theme.tint_brush(QtCore.QRectF(surface.rect()))); p.end()
+        self.assertEqual(image.pixelColor(40, 30), expected.pixelColor(0, 0))
+        surface.deleteLater()
+    def test_navigation_blurs_in_same_window_and_closes_with_panel(self):
+        root = QtWidgets.QWidget(); root.resize(620, 440)
+        nav = QtWidgets.QLabel('控制    媒体    设置', root); nav.setGeometry(0, 0, 620, 36)
+        self.page.setParent(root); self.page.move(0, 40)
+        self.page.island.nav = nav; self.page.island.content = root
+        root.show(); self.page.show()
+        try:
+            self.panel.present(); QtTest.QTest.qWait(450)
+            overlay = self.panel
+            self.assertTrue(overlay.isVisible())
+            self.assertFalse(overlay.isWindow())
+            self.assertIs(overlay.window(), root)
+            self.assertIs(overlay.parentWidget(), root)
+            self.assertEqual(overlay._blurred.deviceIndependentSize().toSize(), root.size())
+            QtTest.QTest.mouseClick(overlay, QtCore.Qt.MouseButton.LeftButton, pos=QtCore.QPoint(10, 10))
+            QtTest.QTest.qWait(320)
+            self.assertFalse(overlay.isVisible())
+            self.assertTrue(overlay._blurred.isNull())
+            self.assertFalse(self.panel.isVisible())
+            self.assertEqual(self.service.calls, [])
+            self.panel.present(); QtTest.QTest.qWait(450)
+            root.hide(); app.processEvents()
+            self.assertIsNone(self.panel._height_before)
+            self.assertEqual(self.page.preferred_height(), 220)
+            self.assertEqual(self.page.island.locks, set())
+            self.assertFalse(self.panel._capture_timer.isActive())
+        finally:
+            self.panel.setParent(self.page); self.page.setParent(None)
+            root.close(); root.deleteLater()
     def test_installer_refuses_unknown_existing_file_without_partial_write(self):
         spec = importlib.util.spec_from_file_location('guard_installer', BASE / 'install.py')
         installer = importlib.util.module_from_spec(spec); spec.loader.exec_module(installer)

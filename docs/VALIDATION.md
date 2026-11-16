@@ -111,3 +111,14 @@ ValidateOnly构造通过；独立30秒有时限广播请求全程仅Waiting，�
 - 离屏布局截图artifacts/wisland-controls.png、wisland-controls-expanded.png、wisland-airdrop-light.png、wisland-airdrop-dark.png；蓝色启用等为布局fixture，不充当硬件/无线证据。自动测试完整日志wisland-embedded-check.log留本地。本轮未重复11月15日的真实传输验收。
 
 最终补充：升级安装器拒绝未知已有模块且不产生部分写入的检查通过，当前总计15项；最终本机报告为wisland-embedded-native-final.json，所有同窗口/边界条件通过。当前版本备份在wisland/data/extension-backups/airdrop-20261116-133945，按其中previous和manifest可恢复到升级前。
+
+## 2026-11-16：展开后的连续背景模糊
+
+用户反馈模糊不足。原实现只将控制页快照缩小放大，透明像素叠在仍清晰的控件上，快照高度又停留在展开前，导航栏不在同一模糊区域。先改成不透明玻璃合成后的Qt离屏模糊，再从实际窗口发现分块边界；最终统一采样整个island.content（导航、控制页及留白），详情层仍是原窗口内部Qt.Widget。背景按灵动岛path裁剪，保留透明圆角，详情玻璃取同一模糊上下文，前景文字/按钮不模糊。
+
+- 模糊半径24逻辑像素，DPR换算后补两倍半径边缘像素再裁回；输出显式不透明，避免Qt内核alpha舍入后穿透。透明控件渲染不强制DrawWindowBackground，避免引入默认调色板色块。页面增长期间先完整覆盖新区域，再捕获新尺寸。
+- 复用现有Backdrop.ready，160ms合并刷新且未变化帧跳过；没有新增桌面采集器或持续定时器。收起时停止刷新，释放原图/模糊缓存；父级隐藏、原页切走仍恢复高度/焦点/锁。
+- `integrations/wisland/tests/check_extension.py`共21项通过，日志artifacts/wisland-blur-check.log。新增6项覆盖高频条纹衰减、白色边缘与1/1.5/2 DPR、透明页面不引入默认底色、快照不透明且底层文字变化不穿透、变高后完整覆盖与清缓存、导航和详情同窗口及父级隐藏清理；没有给实时控件附加模糊effect。
+- 安装器六项哈希核对/逐文件备份通过，最终更新D:/AI/wisland；最新备份data/extension-backups/airdrop-20261116-140210，可按manifest及previous恢复。原配置、模型、接收目录与AirDrop后端不改。
+- 实际应用报告artifacts/wisland-blur-unified-native.json：isVisible=true、isWindow=false、nativeChild=false、sharesIslandWindow=true、parentIsIslandContent=true、sameWindowTiles=true、cardInsidePage=true、blurCoversPage=true、blurCoversSurface=true、opaqueBlur=true、navBlurVisible=true、navSharesWindow=true；页面616×316，卡片相对content为[320,62,300,300]。parentIsControlPage=false是为连同导航/留白一起模糊而将父控件移到原content，不是新窗口。
+- 已查看同名PNG的应用自身实际渲染，确认分块矩形接缝消除、整块背景连续柔化、详情保持清晰。该图可能包含原玻璃中的模糊桌面，留本地不提交；自动布局样例PNG仍独立保存。检查后wisland日志修改时间仍13:47:08，没有本轮新增异常。离屏/实际应用渲染不代替人眼交互或手机传输，本轮无新的iPhone传输验收。

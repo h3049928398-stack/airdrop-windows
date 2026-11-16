@@ -77,7 +77,7 @@ def system_source(original: bytes) -> bytes:
             self.island.backdrop.ready.connect(self.airdrop.update)
             self.island.backdrop.ready.connect(self.wifi.update)
             self.island.backdrop.ready.connect(self.bt.update)
-            self.island.backdrop.ready.connect(self.airdrop_panel.card.update)
+            self.island.backdrop.ready.connect(self.airdrop_panel.refresh_backdrop)
             self._glass_hooked = True
         self.ctx.brightness.refresh()'''),
         ('        self.ctx.radio.refresh()\n', '        self.ctx.radio.refresh()\n        self.airdrop_service.refresh()\n'),
@@ -113,6 +113,7 @@ def install(target: Path):
         target / 'wisland/services/airdrop.py': (BASE / 'payload/services/airdrop.py').read_bytes(),
         target / 'wisland/ui/airdrop.py': (BASE / 'payload/ui/airdrop.py').read_bytes(),
         target / 'wisland/ui/control_skin.py': (BASE / 'payload/ui/control_skin.py').read_bytes(),
+        target / 'wisland/ui/backdrop_filter.py': (BASE / 'payload/ui/backdrop_filter.py').read_bytes(),
         target / 'docs/AIRDROP_EXTENSION.md': (BASE / 'README.md').read_bytes(),
     }
     for path in desired:

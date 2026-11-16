@@ -26,7 +26,7 @@ wisland每1.5秒轮询并续租8秒的确认界面归属；出现请求自动展
 
 ## 安装与恢复
 
-本机安装器install.py修改wisland/ui/pages/system.py，安装services/airdrop.py、ui/airdrop.py、ui/control_skin.py及本文副本docs/AIRDROP_EXTENSION.md。首次安装核对上游原控制页；升级先核对现有安装清单，仅覆盖哈希一致的已知扩展。改动前验证控制页SHA256与已审查版本完全一致，不覆盖未知本地改动。原控制页及安装清单保存在wisland/data/extension-backups/airdrop-时间戳。
+本机安装器install.py修改wisland/ui/pages/system.py，安装services/airdrop.py、ui/airdrop.py、ui/control_skin.py、ui/backdrop_filter.py及本文副本docs/AIRDROP_EXTENSION.md，共六项文件。首次安装核对上游原控制页；升级先核对现有安装清单，仅覆盖哈希一致的已知扩展。改动前验证控制页SHA256与已审查版本完全一致，不覆盖未知本地改动。原控制页及安装清单保存在wisland/data/extension-backups/airdrop-时间戳。
 
 恢复前退出wisland。11月16日起，每次升级将当时文件备份到previous/原相对路径，并在manifest中记录backup和created；按backup逐文件恢复到原路径。仅对created=true且当前哈希匹配本次安装的条目进行移除。旧版最初安装仍可用system.py.original恢复原控制页。若哈希不匹配应先保留后续改动。不要删除用户config.json、models、data或原服务。已安装目录不是Git仓库，扩展代码在AirDrop源码仓库本地提交，不自行对用户安装目录初始化Git或推送。
 
@@ -56,3 +56,11 @@ wisland每1.5秒轮询并续租8秒的确认界面归属；出现请求自动展
 - 15项Qt检查通过，新增同一window祖先/无顶层窗口、父级隐藏清理、重复展开、空白/Esc收起及竞态检查；三种连接图标均为代码绘制。截图中的蓝色启用状态为布局样例，不当作本机硬件状态。
 - 真正运行在wisland中的应用自检报告：isWindow=false、nativeChild=false、sharesIslandWindow=true、parentIsControlPage=true、sameWindowTiles=true、cardInsidePage=true、animationStopped=true。页面616×316、详情卡300×300，均在控制页内部。
 - 诊断入口：用wisland的Python启动run.pyw --airdrop --airdrop-layout-report=完整JSON路径，可复现应用自身几何检查；该检查不点击控件或启动无线。改动仅为UI和安全升级安装器，此轮未新增真实手机文件验收，11月15日成功记录仍独立保留。
+
+### 展开后的背景模糊修正
+
+原先的缩小放大快照保留透明度，叠在仍清晰的控件上，且只覆盖展开前高度。现改为先将应用自己的控制页合成到不透明玻璃底，再用Qt离屏图像模糊；复制边缘像素后裁回，避免黑边，按屏幕缩放比例处理。效果不挂在实时控件上，详情文字和按钮保持清晰。
+
+展开后的控制页、导航栏和留白合成为一张连续背景，同一强度过渡，详情玻璃也取该模糊上下文。详情层挂在原island.content内部，仍无额外窗口，卡片位置继续以控制页磁贴为锚点；背景按灵动岛轮廓裁剪，避免导航与页面分块产生的矩形接缝。页面伸长时先保证全区域覆盖，再采样新尺寸，避免底部短暂露出清晰控件。沿用原Backdrop更新信号，160ms合并刷新，跳过未变化帧；收起停止刷新并清空图像，不新增桌面采集线程。
+
+透明控件使用不强制绘制默认窗口底色的离屏渲染，避免将系统调色板变成矩形色块。21项Qt检查通过，新增模糊高频衰减、边缘/DPR保真、不透明合成与清晰内容不穿透、透明页面不引入默认底色、调整大小后全区域覆盖、导航同窗口及缓存清理。诊断报告新增blurCoversPage、opaqueBlur、navBlurVisible、navSharesWindow，并在报告旁保存当前应用窗口自身的PNG，便于视觉核查。它不是手机传输或持续帧率验收。
