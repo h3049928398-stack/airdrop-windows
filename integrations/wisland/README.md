@@ -1,6 +1,6 @@
 # Wisland 隔空投送扩展
 
-2026-11-17：本目录已提取为[独立维护仓库](../../../wisland-connectivity-extension/README.md)。此处保留原始集成快照，新的安装/恢复、可移植测试和打包工作以独立仓库为准；当前安装不因此变动。
+2026-11-17：本目录已提取为[独立维护仓库](https://github.com/h3049928398-stack/wisland-connectivity-extension)。此处保留原始集成快照，新的安装/恢复、可移植测试和打包工作以独立仓库为准；当前安装不因此变动。
 
 2026-11-16更新，本机wisland（AsamiAkito/wisland，MIT）控制页扩展。扩展原创源码保存在AirDrop独立工程integrations/wisland；上游许可证副本见LICENSE-wisland.txt。没有复制DropBridge代码或二进制。
 
