@@ -2,11 +2,13 @@
 
 独立开发的 Windows x64 接收应用，原工程名 LiquidGlassWinAirDrop。默认约352×480 DIP，停靠屏幕右下工作区；底部「接收／文件／连接／设置」采用自行实现的应用内 Liquid Glass 近似材质。底部按钮点击后不再显示蓝色矩形焦点框，键盘导航仍可用。
 
+私有源码仓库：[airdrop-windows](https://github.com/h3049928398-stack/airdrop-windows)。开发与接手入口：[开发文档](docs/DEVELOPMENT.md)、[交接文档](docs/HANDOFF.md)、[本机控制协议](docs/CONTROL_PROTOCOL.md)。
+
 **已在本机完成一次真实 iPhone 原生隔空投送：手机发现 ASUS → Windows 确认 → 图片保存成功。** 2026-11-13实收3,401,455字节，接收开始至落盘4.226秒，约0.805 MB/s（包含协议收尾等待）；文件大小与发送声明一致，图片解码通过。本机USB网卡由用户绑定WinUSB。单次成功不代表所有iOS版本、多文件或长期稳定性通过；BLE广播仍未观察到Started。详见验证记录。
 
 ## 运行
 
-双击 `../runtime/AirDrop/AirDrop.exe`，保留同目录文件；需要 .NET 10 Desktop Runtime。界面支持设备名、接收目录、文件搜索、动画/透明度、置顶和收起托盘。文件页列出真实目录内容，不将手动放入的文件冒称 AirDrop 传输。设置中的“开机自启动”默认关闭，勾选后点击保存设置生效；Windows登录后应用收起到托盘，双击托盘图标打开。取消勾选并保存即可关闭自启动。自启动只打开应用，接收仍需手动开启。
+在现有工作区运行 `../runtime/AirDrop/AirDrop.exe`；独立克隆构建后默认为 `dist/AirDrop/AirDrop.exe`，保留同目录文件；需要 .NET 10 Desktop Runtime。界面支持设备名、接收目录、文件搜索、动画/透明度、置顶和收起托盘。文件页列出真实目录内容，不将手动放入的文件冒称 AirDrop 传输。设置中的“开机自启动”默认关闭，勾选后点击保存设置生效；Windows登录后应用收起到托盘，双击托盘图标打开。取消勾选并保存即可关闭自启动。自启动只打开应用，接收仍需手动开启。
 
 WinUSB 准备完成后，手动点击「开启接收」才启动专用 USB、AWDL、用户态 IPv6/TCP、TLS 和 BLE 发现组件。每次请求需明确确认，45秒无答复默认拒绝；文件默认存入设置的目录。关闭窗口收起托盘，托盘「退出」停止后台；Windows Job 负责应用意外退出时清理其子进程。
 
@@ -17,10 +19,10 @@ WinUSB 准备完成后，手动点击「开启接收」才启动专用 USB、AWD
 本目录是独立 Git 工程，不引用父目录 DropBridge 的源代码、补丁、资源、安装包或二进制。允许的独立开源底层库版本见 `docs/native.lock.json`。
 
 ```powershell
-..\Build-AirDrop.ps1 -Preview
+.\build.ps1 -Preview
 .\tools\Restore-Sources.ps1 -WithBuildDependencies
-..\Build-AirDrop.ps1 -Native
-..\runtime\AirDrop\AirDrop.exe --engine-check .\artifacts\engine-check.json
+.\tools\Build-Native.ps1
+.\dist\AirDrop\AirDrop.exe --engine-check .\artifacts\engine-check.json
 ```
 
 GUI要求.NET 10 SDK；原生层要求 Visual Studio C++/CMake/Ninja、Git。恢复脚本将依赖下载到本目录并核对固定提交、工具链归档SHA-256，不安装系统驱动。协议工作进程使用固定 LLVM-MinGW、libusb、Python 3.12.10；没有 WSL、虚拟机、Wintun 或 iPhone 端应用依赖。原生构建脚本已经在本机执行；从空白机器完整下载重建尚未验收。
@@ -41,4 +43,4 @@ GUI build.ps1、tools/Build-Native.ps1、tools/Package-Engine.ps1支持-OutputDi
 
 ## Wisland扩展
 
-已安装到D:/AI/wisland的“控制→隔空投送”，可通过控制磁贴内部展开的详情层关闭/开启10分钟接收，并逐次同意iPhone请求。真实GIF接收已通过，新入口复用本程序单实例宿主；不复制另一套无线后端。安装源码、恢复办法与本机验证见[integrations/wisland](integrations/wisland/README.md)。
+“控制→隔空投送”可通过磁贴内部展开层关闭/开启10分钟接收，并逐次同意iPhone请求；同时提供Wi-Fi和蓝牙详情。新入口复用本程序单实例宿主，不复制另一套无线后端。后续源码、安装、恢复与交接见[独立拓展仓库](https://github.com/h3049928398-stack/wisland-connectivity-extension)；本仓库[integrations/wisland](integrations/wisland/README.md)仅保留提取快照。两仓库接口以[CONTROL_PROTOCOL](docs/CONTROL_PROTOCOL.md)为准。
