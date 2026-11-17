@@ -1,5 +1,7 @@
 # 当前交接
 
+2026-11-17：用户已要求将灵动岛拓展打包并建立独立GitHub私有仓库。新源码位于工作区wisland-connectivity-extension，远程为https://github.com/h3049928398-stack/wisland-connectivity-extension；后续拓展以新仓库维护，本目录integrations/wisland保留提取快照。接收端源码/当前唯一运行入口不改。41项独立检查与两份交付包核验见工作区docs/WISLAND_EXTENSION_EXPORT_2026-11-17.md。
+
 2026-11-13：用户将软件更名AirDrop，要求移除底部导航点击后的蓝色矩形焦点框，并推进原生隔空投送。两项UI改动已完成。工程目录仍LiquidGlassWinAirDrop，是独立Git工程；不依赖父目录DropBridge代码/补丁/二进制。
 
 已构建接收链：原创WPF监管、devourer USB工作进程、独立WinAWDL/OWL、原创lwIP IPv6/TCP/mDNS桥、独立MIT接收协议与原创逐次确认包装、原创WinRT BLE广播。Windows Job负责子进程退出清理。固定上游版本/工具链SHA256见native.lock.json；恢复/构建/打包脚本在tools。应用入口dist/AirDrop/AirDrop.exe；需要.NET10DesktopRuntime。
